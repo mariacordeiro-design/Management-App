@@ -265,6 +265,7 @@ export async function getTurnosAtivos(): Promise<Turno[]> {
         const safeEvento = Array.isArray(rawEvento) && rawEvento.length > 0 ? rawEvento[0] : [];
         const rawData = {
           id: record.id,
+          nome: record.get('Nome')?.toString() || 'Sem Nome',
           idTurno: record.get('ID Turno')?.toString(),
           participantes: record.get('Participantes'),
           evento: safeEvento,
@@ -290,6 +291,7 @@ export async function getHistoricoTurnos(): Promise<Turno[]> {
         const safeEvento = Array.isArray(rawEvento) && rawEvento.length > 0 ? rawEvento[0] : [];
         const rawData = {
           id: record.id,
+          nome: record.get('Nome')?.toString() || 'Sem Nome',
           idTurno: record.get('ID Turno')?.toString(),
           participantes: record.get('Participantes'),
           evento: safeEvento,
@@ -321,6 +323,7 @@ export async function getTurnosAtivosPorPessoa(recordID: string): Promise<Turno[
           Array.isArray(rawEvento) && rawEvento.length > 0 ? rawEvento[0] : 'Sem Evento';
         const rawData = {
           id: record.id,
+          nome: record.get('Nome')?.toString() || 'Sem Nome',
           idTurno: record.get('ID Turno')?.toString() || 'Sem ID Turno',
           participantes: record.get('Participantes'),
           evento: safeEvento,

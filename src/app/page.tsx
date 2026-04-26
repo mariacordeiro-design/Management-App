@@ -87,7 +87,6 @@ export default function Home() {
           console.error("Erro ao carregar eventos: ", error);
         })
         .finally(() => {
-          console.log("Current User:", currentUser?.id);
           if (!currentUser) {
             console.error("Utilizador não autenticado.");
             setIsLoading(false);
@@ -133,6 +132,10 @@ export default function Home() {
   const obterNomeEvento = (eventoId: string): string => {
     const evento = eventos.find(e => e.id === eventoId);
     return evento ? evento.nome : eventoId;
+  };
+
+  const obterTituloTurno = (turno: Turno): string => {
+    return turno.nome?.trim() || turno.idTurno || "Turno sem nome";
   };
 
   return (
@@ -330,7 +333,7 @@ export default function Home() {
                     >
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900">
-                          {obterNomeEvento(turno.evento)}
+                          {obterTituloTurno(turno)}
                         </h3>
                         <p className="text-sm text-gray-500 mt-1">
                           {new Date(turno.dataInicio).toLocaleDateString("pt-PT", {

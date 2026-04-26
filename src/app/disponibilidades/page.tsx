@@ -38,7 +38,7 @@ const TIME_SLOTS = Array.from({ length: 32 }, (_, i) => {
 });
 
 const CRAB_EVENTS = {
-  presencial: "tlmotopresencial-669665",
+  presencial: "tlmoto-940143",
 };
 
 export default function Disponibilidades() {

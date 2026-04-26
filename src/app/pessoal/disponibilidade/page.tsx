@@ -32,7 +32,7 @@ const TIME_SLOTS = Array.from({ length: 32 }, (_, i) => {
 });
 
 const CRAB_EVENTS = {
-  presencial: "tlmotopresencial-669665",
+  presencial: "tlmoto-940143",
 };
 
 export default function Disponibilidade() {
@@ -44,6 +44,7 @@ export default function Disponibilidade() {
 
   const isPointerDown = useRef(false);
   const lastTouchedCellRef = useRef<string | null>(null);
+  const dragBaseSlotsRef = useRef<TimeSlot[] | null>(null);
 
   const { user } = useUser();
   const selectedPerson = user ? `user-${user.istId}` : "";
@@ -91,7 +92,6 @@ export default function Disponibilidade() {
           loadAvailabilityFromCrabFit(result.availability);
         }
 
-        console.log("Login automático OK:", result);
       } catch (error) {
         console.error("Erro no login automático:", error);
       } finally {
@@ -132,8 +132,13 @@ export default function Disponibilidade() {
 
   const applySelectionRange = useCallback(
     (start: DragStart, end: DragStart, shouldSelect: boolean, personId: string) => {
-      const startDay = Math.min(start.day, end.day);
-      const endDay = Math.max(start.day, end.day);
+      const startColumnIndex = WEEK_ORDER.indexOf(start.day);
+      const endColumnIndex = WEEK_ORDER.indexOf(end.day);
+
+      if (startColumnIndex === -1 || endColumnIndex === -1) return;
+
+      const startColumn = Math.min(startColumnIndex, endColumnIndex);
+      const endColumn = Math.max(startColumnIndex, endColumnIndex);
 
       const startSlotIndex = TIME_SLOTS.findIndex(
         slot => slot.hour === start.hour && slot.minute === start.minute
@@ -148,10 +153,11 @@ export default function Disponibilidade() {
       const endSlot = Math.max(startSlotIndex, endSlotIndex);
 
       const newSlots: TimeSlot[] = [];
-      for (let d = startDay; d <= endDay; d++) {
+      for (let column = startColumn; column <= endColumn; column++) {
+        const day = WEEK_ORDER[column];
         for (let s = startSlot; s <= endSlot; s++) {
           newSlots.push({
-            day: d,
+            day,
             hour: TIME_SLOTS[s].hour,
             minute: TIME_SLOTS[s].minute,
           });
@@ -159,7 +165,7 @@ export default function Disponibilidade() {
       }
 
       setAvailability(prev => {
-        const personSlots = prev[personId] || [];
+        const personSlots = dragBaseSlotsRef.current ?? prev[personId] ?? [];
 
         if (shouldSelect) {
           const merged = [...personSlots];
@@ -206,6 +212,7 @@ export default function Disponibilidade() {
 
       isPointerDown.current = true;
       setIsSelectingMode(shouldSelect);
+      dragBaseSlotsRef.current = availability[selectedPerson] || [];
 
       const start = { day, hour, minute };
       setDragStart(start);
@@ -215,7 +222,7 @@ export default function Disponibilidade() {
 
       applySelectionRange(start, start, shouldSelect, selectedPerson);
     },
-    [applySelectionRange, isLoggedIn, isSlotSelected, selectedPerson]
+    [applySelectionRange, availability, isLoggedIn, isSlotSelected, selectedPerson]
   );
 
   const handlePointerUp = useCallback(() => {
@@ -223,6 +230,7 @@ export default function Disponibilidade() {
     setDragStart(null);
     setIsSelectingMode(null);
     lastTouchedCellRef.current = null;
+    dragBaseSlotsRef.current = null;
   }, []);
 
   const handlePointerMove = useCallback(
@@ -290,7 +298,6 @@ export default function Disponibilidade() {
 
     try {
       await updateAvailability(CRAB_EVENTS.presencial, user.istId.toString(), crabAvailability);
-      console.log("Disponibilidade sincronizada automaticamente");
     } catch (error) {
       console.error("Erro na sincronização automática:", error);
       throw error;
@@ -302,7 +309,6 @@ export default function Disponibilidade() {
 
     try {
       await syncAvailability();
-      console.log("Sincronização manual OK");
     } catch (error) {
       console.error("Erro na sincronização:", error);
     }

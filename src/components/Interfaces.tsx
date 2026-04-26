@@ -82,6 +82,9 @@ export const TurnoSchema = z.object({
   /** Identificador único do turno ativo */
   id: z.string(),
 
+  /** Nome do turno */
+  nome: z.string().default("Sem Nome"),
+
   /** Identificador lógico do turno (ex: número ou código) */
   idTurno: z.string().default("Sem ID Turno"),
 

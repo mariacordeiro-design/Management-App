@@ -15,7 +15,7 @@ import {
 import { Evento, User } from "@/src/components/Interfaces";
 import { getPeopleAvailability, PeopleAvailabilityResponse } from "../../api/crab/api";
 
-const API_EVENT_ID = "tlmotopresencial-669665";
+const API_EVENT_ID = "tlmoto-940143";
 
 const DIAS_SEMANA = [
   { value: 0, label: "Domingo" },
@@ -71,6 +71,34 @@ const getNextDateForWeekday = (weekday: number): string => {
 const converterStringParaData = (str: string): Date => {
   const [day, month, year] = str.split("/").map(Number);
   return new Date(year, month - 1, day);
+};
+
+const normalizarData = (date: Date): Date => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+};
+
+const parseDataDDMMYYYY = (value: string): Date | null => {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+
+  const parsed = new Date(year, month - 1, day);
+  const isValid =
+    parsed.getFullYear() === year && parsed.getMonth() === month - 1 && parsed.getDate() === day;
+
+  return isValid ? normalizarData(parsed) : null;
+};
+
+const parseDataISO = (value: string): Date | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return normalizarData(parsed);
 };
 
 const expandirTurnosRecorrentes = (turnosOriginais: TurnoLocal[]): TurnoLocal[] => {
@@ -470,7 +498,7 @@ export default function Turnos(): JSX.Element {
           ? getNextDateForWeekday(diaSemana as number)
           : "";
 
-      if (!nomeTurno) return alert("Por favor, dê um nome à marcação!");
+      if (!nomeTurno.trim()) return alert("Por favor, dê um nome à marcação!");
       if (!dataFinal) return alert("Selecione uma data!");
       if (
         !eventoSelecionado ||
@@ -482,6 +510,51 @@ export default function Turnos(): JSX.Element {
         return alert("Preencha os campos obrigatórios!");
       if (tipoTurno !== "Turno" && !dataLimiteRecorrencia)
         return alert("Defina até quando a marcação se repete!");
+
+      if (horaInicio >= horaFim) {
+        return alert("A hora de início tem de ser anterior à hora de fim.");
+      }
+
+      const dataTurno = parseDataDDMMYYYY(dataFinal);
+      if (!dataTurno) {
+        return alert("A data escolhida é inválida.");
+      }
+
+      const hoje = normalizarData(new Date());
+      if (!isEditing && dataTurno < hoje) {
+        return alert("Não é possível criar marcações em datas passadas.");
+      }
+
+      let dataLimite: Date | null = null;
+      if (tipoTurno !== "Turno") {
+        dataLimite = parseDataISO(dataLimiteRecorrencia);
+        if (!dataLimite) {
+          return alert("A data limite de recorrência é inválida.");
+        }
+        if (dataLimite < dataTurno) {
+          return alert("A data limite deve ser igual ou posterior à data da primeira sessão.");
+        }
+      }
+
+      const eventoSelecionadoData = eventos.find(ev => ev.id === eventoSelecionado);
+      if (!eventoSelecionadoData) {
+        return alert("Evento inválido.");
+      }
+
+      const dataInicioEvento = parseDataISO(eventoSelecionadoData.dataInicio);
+      const dataFimEvento = parseDataISO(eventoSelecionadoData.dataFim);
+
+      if (!dataInicioEvento || !dataFimEvento) {
+        return alert("O evento associado tem datas inválidas. Verifique o evento.");
+      }
+
+      if (dataTurno < dataInicioEvento || dataTurno > dataFimEvento) {
+        return alert("A data da marcação tem de estar dentro do intervalo do evento.");
+      }
+
+      if (dataLimite && (dataLimite < dataInicioEvento || dataLimite > dataFimEvento)) {
+        return alert("A data limite da recorrência tem de estar dentro do intervalo do evento.");
+      }
 
       const responsavelRecId = getRecordId(responsavelSelecionadoId);
       const participantesRecIds = participantesSelecionadosIds
@@ -746,7 +819,7 @@ export default function Turnos(): JSX.Element {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700">
-                    Tipo de Marcação
+                    Tipo de Marcação *
                   </label>
                   <div className="flex gap-2 mt-2">
                     {["Turno", "Worksession", "Reunião"].map(t => (
@@ -764,7 +837,7 @@ export default function Turnos(): JSX.Element {
                 {tipoTurno !== "Turno" && (
                   <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
                     <label className="block text-xs font-bold text-blue-700 mb-1 uppercase">
-                      Repetir semanalmente até:
+                      Repetir semanalmente até: *
                     </label>
                     <input
                       type="date"
@@ -803,7 +876,7 @@ export default function Turnos(): JSX.Element {
                     onChange={e => setUsarDataEspecifica(e.target.checked)}
                   />
                   <label htmlFor="checkDate" className="text-sm text-gray-700 italic">
-                    Data específica da 1ª sessão
+                    Data específica da 1ª sessão *
                   </label>
                 </div>
                 {usarDataEspecifica ? (
@@ -856,7 +929,7 @@ export default function Turnos(): JSX.Element {
                 <div className="pt-2 border-t">
                   <div className="flex justify-between items-center mb-3">
                     <label className="block text-sm font-semibold text-gray-700">
-                      Participantes
+                      Participantes *
                     </label>
                     <button
                       type="button"

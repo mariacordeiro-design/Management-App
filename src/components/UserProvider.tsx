@@ -61,6 +61,6 @@ export function useUser() {
 }
 
 export function hasPermission(role: string): boolean {
-  const regex = /^(Sublíder|Líder)(?: de .+)?$/;
+  const regex = /^(Sublíder|Líder|Diretor Técnico|Business Manager)(?: de .+)?$/;
   return regex.test(role);
 }
