@@ -321,7 +321,7 @@ export default function Eventos() {
               <button
                 onClick={() => setActiveTab("historical")}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
-                          title="Eliminar evento"
+                  activeTab === "historical"
                     ? "border-blue-500 text-blue-600"
                     : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
                 }`}
@@ -364,7 +364,7 @@ export default function Eventos() {
                     className="w-full px-4 py-2 border text-gray-500 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-                    title="Eliminar evento"
+              </div>
             </div>
 
             <EventsTable eventos={filteredEventosAtivos} isHistorical={false} />
