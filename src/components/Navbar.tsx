@@ -31,7 +31,7 @@ const Navbar = () => {
   return (
     <div className="relative top-0 left-0 right-0 bg-black/90 backdrop-blur-md shadow-lg border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        <div className="flex justify-between items-center h-24">
+        <div className="relative flex items-center h-24">
           {!isLoginPage && (
             <>
               {/* BACK BUTTON (only if NOT on home) */}
@@ -83,7 +83,7 @@ const Navbar = () => {
               </button>
 
               {/* DESKTOP NAVIGATION */}
-              <div className="hidden md:flex items-center space-x-8">
+              <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center space-x-8">
                 {filteredNavigation.map(item => (
                   <Link
                     key={item.name}
