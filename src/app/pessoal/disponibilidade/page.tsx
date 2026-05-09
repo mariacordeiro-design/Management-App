@@ -271,6 +271,32 @@ export default function Disponibilidade() {
     [applySelectionRange, dragStart, isLoggedIn, isSelectingMode, selectedPerson]
   );
 
+  const invertAvailability = () => {
+    if (!selectedPerson || !isLoggedIn) return;
+
+    setAvailability(prev => {
+      const personSlots = prev[selectedPerson] || [];
+      const selectedSlotKeys = new Set(
+        personSlots.map(slot => `${slot.day}-${slot.hour}-${slot.minute}`)
+      );
+
+      const invertedSlots = WEEK_ORDER.flatMap(day =>
+        TIME_SLOTS.filter(
+          slot => !selectedSlotKeys.has(`${day}-${slot.hour}-${slot.minute}`)
+        ).map(slot => ({
+          day,
+          hour: slot.hour,
+          minute: slot.minute,
+        }))
+      );
+
+      return {
+        ...prev,
+        [selectedPerson]: invertedSlots,
+      };
+    });
+  };
+
   const syncAvailability = async () => {
     if (!user || !isLoggedIn || !selectedPerson) return;
 
@@ -353,13 +379,23 @@ export default function Disponibilidade() {
             <h2 className="text-lg font-semibold text-gray-900">Disponibilidade</h2>
 
             {isLoggedIn && (
-              <button
-                onClick={manualSync}
-                disabled={!selectedPerson}
-                className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded font-medium transition-colors"
-              >
-                Guardar
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={invertAvailability}
+                  disabled={!selectedPerson}
+                  className="bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded font-medium transition-colors"
+                >
+                  Inverter
+                </button>
+
+                <button
+                  onClick={manualSync}
+                  disabled={!selectedPerson}
+                  className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded font-medium transition-colors"
+                >
+                  Guardar
+                </button>
+              </div>
             )}
           </div>
 
