@@ -49,7 +49,7 @@ export function InstallButton() {
               Chrome/Edge (Desktop/Android): Abra o menu (⋮) → <b>Instalar app</b>
             </li>
             <li>
-              Safari (iOS): Partilhar → <b>Adicionar à Tela de Início</b>
+              Safari (iOS): Partilhar → <b>Adicionar à Dock</b>
             </li>
           </ul>
           <div className="mt-3 text-right">

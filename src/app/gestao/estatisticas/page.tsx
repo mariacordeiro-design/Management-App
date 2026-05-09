@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Calendar, Users, Clock, TrendingUp, Search, PieChart, BarChart3 } from "lucide-react";
 import { useMembers, useMembersByAreaArray } from "@/src/components/MemberProvider";
 import { getEventos, getHistoricoTurnos } from "../../api/airtable/airtable";
+import { getPeopleAvailability, PeopleAvailabilityResponse } from "../../api/crab/api";
 import { Evento, Turno } from "@/src/components/Interfaces";
 import ProtectedPage from "@/src/components/ProtectedPage";
 import {
@@ -35,6 +36,8 @@ const generateColor = (index: number, total: number) => {
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
 
+const AVAILABILITY_EVENT_ID = "tlmoto-940143";
+
 const StatisticsPage = () => {
   const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
@@ -48,12 +51,15 @@ const StatisticsPage = () => {
   const [departamentoSearchTerm, setDepartamentoSearchTerm] = useState("");
   const [participantChartType, setParticipantChartType] = useState<"pie" | "bar">("pie");
   const [eventChartType, setEventChartType] = useState<"pie" | "bar">("pie");
+  const [availabilityPeople, setAvailabilityPeople] = useState<PeopleAvailabilityResponse[]>([]);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const { members } = useMembers();
   const membersByAreaArray = useMembersByAreaArray();
 
   useEffect(() => {
     loadEventos();
     loadTurnos();
+    loadAvailabilityPeople();
   }, []);
 
   const loadEventos = () => {
@@ -75,6 +81,20 @@ const StatisticsPage = () => {
       .catch(error => {
         console.error("Erro ao carregar turnos:", error);
         alert("Falha ao carregar turnos. Tente novamente.");
+      });
+  };
+
+  const loadAvailabilityPeople = () => {
+    setIsLoadingAvailability(true);
+    getPeopleAvailability(AVAILABILITY_EVENT_ID)
+      .then(people => {
+        setAvailabilityPeople(people || []);
+      })
+      .catch(error => {
+        console.error("Erro ao carregar disponibilidades:", error);
+      })
+      .finally(() => {
+        setIsLoadingAvailability(false);
       });
   };
 
@@ -297,6 +317,45 @@ const StatisticsPage = () => {
     const normalizedSearch = normalizeSearch(participanteSearchTerm);
     return members.filter(member => normalizeSearch(member.nome).includes(normalizedSearch));
   }, [members, participanteSearchTerm]);
+
+  const availabilityMembers = useMemo(() => {
+    return availabilityPeople
+      .map(person => {
+        const member = members.find(m => m.istId?.toString() === person.name);
+        return {
+          id: member?.id || person.name,
+          name: member?.nome || `Membro ${person.name}`,
+          slots: new Set(person.availability || []).size,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [availabilityPeople, members]);
+
+  const availabilityMembersFiltered = useMemo(() => {
+    if (selectedPeople.length === 0) return [];
+
+    // Ensure selected people appear even if they have no availability records (slots = 0)
+    return selectedPeople.map(id => {
+      const found = availabilityMembers.find(member => member.id === id);
+      if (found) return found;
+      const memberInfo = members.find(m => m.id === id);
+      return {
+        id,
+        name: memberInfo?.nome || id,
+        slots: 0,
+      };
+    });
+  }, [availabilityMembers, selectedPeople, members]);
+
+  const selectedAvailabilityHours = useMemo(() => {
+    const slots = availabilityMembersFiltered.reduce((sum, member) => sum + member.slots, 0);
+    return (slots * 0.25).toFixed(2);
+  }, [availabilityMembersFiltered]);
+
+  const totalAvailabilityHours = useMemo(() => {
+    const totalSlots = availabilityMembers.reduce((sum, member) => sum + member.slots, 0);
+    return (totalSlots * 0.25).toFixed(2);
+  }, [availabilityMembers]);
 
   const hasActiveFilters =
     selectedPeople.length > 0 || selectedEvents.length > 0 || dateFilter !== "all";
@@ -532,6 +591,51 @@ const StatisticsPage = () => {
             </div>
           </div>
 
+          <div className="mt-6 bg-white rounded-lg shadow-sm p-6 border-l-4 border-indigo-500">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-gray-600">
+                Horas de Disponibilidade por Membro
+              </h3>
+              <Clock className="w-5 h-5 text-indigo-500" />
+            </div>
+
+            {isLoadingAvailability ? (
+              <p className="mt-4 text-sm text-gray-500">A carregar disponibilidades...</p>
+            ) : (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <p className="text-sm text-blue-700 font-medium">Disponibilidade total (todos)</p>
+                  <p className="text-2xl font-bold text-blue-900 mt-1">
+                    {totalAvailabilityHours} horas
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">{availabilityMembers.length} membros</p>
+                </div>
+
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                  <p className="text-sm text-indigo-700 font-medium">
+                    Disponibilidade dos participantes filtrados
+                  </p>
+                  {availabilityMembersFiltered.length > 0 ? (
+                    <>
+                      <p className="text-2xl font-bold text-indigo-900 mt-1">
+                        {selectedAvailabilityHours} horas
+                      </p>
+                      <p className="text-xs text-indigo-700 mt-1">
+                        {availabilityMembersFiltered.length === 1
+                          ? availabilityMembersFiltered[0].name
+                          : `${availabilityMembersFiltered.length} membros selecionados`}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-indigo-700 mt-2">
+                      Selecione participante(s) nos filtros do topo para ver as horas.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {filteredTurnos.length === 0 && (
             <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-sm text-yellow-800">
@@ -578,7 +682,7 @@ const StatisticsPage = () => {
               </div>
 
               <div className="h-80 md:h-96">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={360}>
                   {participantChartType === "pie" ? (
                     <RechartsPieChart>
                       <Pie
@@ -721,7 +825,7 @@ const StatisticsPage = () => {
                 </div>
               </div>
               <div className="h-80 md:h-96">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={360}>
                   {eventChartType === "pie" ? (
                     <RechartsPieChart>
                       <Pie

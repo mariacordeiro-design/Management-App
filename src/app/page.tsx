@@ -151,7 +151,7 @@ export default function Home() {
           <div className="flex items-center justify-center py-20">
             <div className="flex items-center gap-3 text-white">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-              <span className="text-lg">Carregando...</span>
+              <span className="text-lg">A carregar...</span>
             </div>
           </div>
         ) : (

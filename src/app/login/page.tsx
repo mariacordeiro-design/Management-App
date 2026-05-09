@@ -47,7 +47,7 @@ export default function Login() {
         />
 
         <button onClick={handleLogin} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded">
-          Login
+          Iniciar sessão
         </button>
       </main>
     </div>

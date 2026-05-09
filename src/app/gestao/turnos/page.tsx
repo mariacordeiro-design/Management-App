@@ -598,12 +598,12 @@ export default function Turnos(): JSX.Element {
   };
 
   const apagarTurnoApp = async (idTurno: string) => {
-    if (window.confirm("Tem a certeza que deseja excluir?")) {
+    if (window.confirm("Tem a certeza de que pretende eliminar este turno?")) {
       try {
         await apagarTurno(idTurno);
         loadTurnos();
       } catch (error) {
-        alert("Erro ao apagar.");
+        alert("Erro ao eliminar.");
       }
     }
   };
@@ -734,7 +734,7 @@ export default function Turnos(): JSX.Element {
                         onClick={() => apagarTurnoApp(turno.id!)}
                         className={`hover:underline ${isHistorical ? "text-orange-600" : "text-red-600"}`}
                       >
-                        Apagar
+                        Eliminar
                       </button>
                     </div>
                   ) : (

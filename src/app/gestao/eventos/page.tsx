@@ -71,13 +71,13 @@ export default function Eventos() {
   };
 
   const apagarEvento = (idEvento: string, isHistorical: boolean) => {
-    if (window.confirm("Tem certeza que deseja excluir este evento?")) {
+      if (window.confirm("Tem a certeza de que pretende eliminar este evento?")) {
       if (isHistorical) {
         setEventosHistoricos(eventosHistoricos.filter(e => e.id !== idEvento));
       } else {
         setEventosAtivos(eventosAtivos.filter(e => e.id !== idEvento));
       }
-      alert("Evento excluído com sucesso!");
+        alert("Evento eliminado com sucesso!");
     }
   };
 
@@ -289,7 +289,7 @@ export default function Eventos() {
             className="bg-white hover:bg-gray-100 text-black px-6 py-2 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <span className={isLoading ? "animate-spin" : ""}>↻</span>
-            {isLoading ? "A carregar..." : "Refrescar"}
+            {isLoading ? "A carregar..." : "Atualizar"}
           </button>
           {isLider && (
             <button
@@ -321,7 +321,7 @@ export default function Eventos() {
               <button
                 onClick={() => setActiveTab("historical")}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
-                  activeTab === "historical"
+                          title="Eliminar evento"
                     ? "border-blue-500 text-blue-600"
                     : "border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300"
                 }`}
@@ -364,7 +364,7 @@ export default function Eventos() {
                     className="w-full px-4 py-2 border text-gray-500 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-              </div>
+                    title="Eliminar evento"
             </div>
 
             <EventsTable eventos={filteredEventosAtivos} isHistorical={false} />

@@ -16,7 +16,7 @@ export default function Pessoal(): JSX.Element {
   const routes = [
     { href: "/", label: "Meu Dashboard" },
     { href: "/pessoal/disponibilidade", label: "Minha Disponibilidade" },
-    { href: "/login", label: "Logout", logout: true },
+    { href: "/login", label: "Terminar sessão", logout: true },
   ];
 
   const handleLogout = () => {
