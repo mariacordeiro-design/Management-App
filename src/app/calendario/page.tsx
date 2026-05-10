@@ -40,6 +40,8 @@ type VistaCalendario = "mes" | "semana";
 
 const DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const HOUR_HEIGHT_PX = 64;
+const WEEK_VIEW_START_MINUTES = 10 * 60;
+const WEEK_VIEW_END_MINUTES = 23 * 60 + 30;
 
 // --- HELPERS ---
 const getWeekDayFromDate = (dateStr: string): number => {
@@ -185,14 +187,22 @@ const timeToMinutes = (time?: string): number => {
   return hours * 60 + minutes;
 };
 
+const formatMinutesToTime = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours.toString().padStart(2, "0")}:${remainingMinutes.toString().padStart(2, "0")}`;
+};
+
 const getHorarioSemana = (_dias: DiaCalendario[]) => {
-  const inicio = 1;
-  const fim = 23;
+  const horas = Array.from(
+    { length: Math.floor((WEEK_VIEW_END_MINUTES - WEEK_VIEW_START_MINUTES) / 60) + 1 },
+    (_, i) => WEEK_VIEW_START_MINUTES + i * 60
+  );
 
   return {
-    inicio,
-    fim,
-    horas: Array.from({ length: fim - inicio + 1 }, (_, i) => i + inicio),
+    inicioMinutos: WEEK_VIEW_START_MINUTES,
+    fimMinutos: WEEK_VIEW_END_MINUTES,
+    marcas: [...horas, WEEK_VIEW_END_MINUTES],
   };
 }; 
 
@@ -314,7 +324,7 @@ export default function Calendario(): JSX.Element {
 
   return (
     <ProtectedPage>
-      <main className="min-h-screen flex flex-col pt-20 px-4 max-w-7xl mx-auto w-full">
+      <main className="min-h-screen flex flex-col pt-20 px-4 sm:px-6 lg:px-8 2xl:px-10 max-w-screen-2xl mx-auto w-full">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl text-white font-semibold">Calendário Geral</h1>
           <button
@@ -391,7 +401,7 @@ export default function Calendario(): JSX.Element {
                 {DIAS_SEMANA.map(day => (
                   <div
                     key={day}
-                    className="px-3 py-3 text-center text-xs font-bold text-gray-500 uppercase"
+                  className="px-2 py-3 text-center text-xs font-bold text-gray-500 uppercase sm:px-3"
                   >
                     {day}
                   </div>
@@ -403,7 +413,7 @@ export default function Calendario(): JSX.Element {
                 {calendarDays.map((dia, index) => (
                   <div
                     key={index}
-                    className={`min-h-[140px] p-2 border-b border-r border-gray-100 cursor-pointer transition 
+                    className={`min-h-[120px] p-1.5 border-b border-r border-gray-100 cursor-pointer transition sm:min-h-[140px] sm:p-2 xl:min-h-[165px] 2xl:min-h-[190px]
                       ${!dia.isCurrentMonth ? "bg-gray-50/50" : "bg-white hover:bg-gray-50"} 
                       ${dia.isToday ? "ring-2 ring-inset ring-blue-500 bg-blue-50/10" : ""}
                     `}
@@ -442,9 +452,9 @@ export default function Calendario(): JSX.Element {
               </div>
             </>
           ) : (
-            <div className="overflow-x-hidden bg-white">
-              <div className="w-full min-w-0 md:min-w-[900px]">
-                <div className="grid grid-cols-[42px_repeat(7,minmax(0,1fr))] md:grid-cols-[72px_repeat(7,minmax(110px,1fr))] border-b border-gray-200">
+            <div className="overflow-x-auto bg-white">
+              <div className="w-full min-w-[760px] xl:min-w-0">
+                <div className="grid grid-cols-[52px_repeat(7,minmax(96px,1fr))] lg:grid-cols-[72px_repeat(7,minmax(120px,1fr))] 2xl:grid-cols-[84px_repeat(7,minmax(150px,1fr))] border-b border-gray-200">
                   <div className="bg-gray-50 border-r border-gray-200" />
                   {weekDays.map((dia, index) => (
                     <button
@@ -469,19 +479,26 @@ export default function Calendario(): JSX.Element {
                 </div>
 
                 <div
-                  className="grid grid-cols-[42px_repeat(7,minmax(0,1fr))] md:grid-cols-[72px_repeat(7,minmax(110px,1fr))] relative"
+                  className="grid grid-cols-[52px_repeat(7,minmax(96px,1fr))] lg:grid-cols-[72px_repeat(7,minmax(120px,1fr))] 2xl:grid-cols-[84px_repeat(7,minmax(150px,1fr))] relative"
                   style={{
-                    height: `${(horarioSemana.fim - horarioSemana.inicio) * HOUR_HEIGHT_PX}px`,
+                    height: `${
+                      ((horarioSemana.fimMinutos - horarioSemana.inicioMinutos) / 60) *
+                      HOUR_HEIGHT_PX
+                    }px`,
                   }}
                 >
                   <div className="relative bg-gray-50 border-r border-gray-200">
-                    {horarioSemana.horas.slice(0, -1).map(hora => (
+                    {horarioSemana.marcas.map(minutos => (
                       <div
-                        key={hora}
+                        key={minutos}
                         className="absolute left-0 right-0 -translate-y-2 pr-3 text-right text-xs font-semibold text-gray-400"
-                        style={{ top: `${(hora - horarioSemana.inicio) * HOUR_HEIGHT_PX}px` }}
+                        style={{
+                          top: `${
+                            ((minutos - horarioSemana.inicioMinutos) / 60) * HOUR_HEIGHT_PX
+                          }px`,
+                        }}
                       >
-                        {hora.toString().padStart(2, "0")}:00
+                        {formatMinutesToTime(minutos)}
                       </div>
                     ))}
                   </div>
@@ -493,11 +510,15 @@ export default function Calendario(): JSX.Element {
                         dia.isToday ? "bg-blue-50/30" : "bg-white"
                       }`}
                     >
-                      {horarioSemana.horas.slice(0, -1).map(hora => (
+                      {horarioSemana.marcas.map(minutos => (
                         <div
-                          key={hora}
+                          key={minutos}
                           className="absolute left-0 right-0 border-t border-gray-100"
-                          style={{ top: `${(hora - horarioSemana.inicio) * HOUR_HEIGHT_PX}px` }}
+                          style={{
+                            top: `${
+                              ((minutos - horarioSemana.inicioMinutos) / 60) * HOUR_HEIGHT_PX
+                            }px`,
+                          }}
                         />
                       ))}
 
@@ -506,7 +527,7 @@ export default function Calendario(): JSX.Element {
                         const endMinutes = timeToMinutes(turno.horaFim);
                         const durationMinutes = Math.max(endMinutes - startMinutes, 30);
                         const top =
-                          ((startMinutes - horarioSemana.inicio * 60) / 60) * HOUR_HEIGHT_PX;
+                          ((startMinutes - horarioSemana.inicioMinutos) / 60) * HOUR_HEIGHT_PX;
                         const height = Math.max((durationMinutes / 60) * HOUR_HEIGHT_PX, 30);
                         const isPassado = !isTurnoFuturo(turno);
                         const corClasses = getCorPorTipo(turno.tipo, isPassado);
