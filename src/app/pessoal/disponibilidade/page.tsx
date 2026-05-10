@@ -41,10 +41,12 @@ export default function Disponibilidade() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSelectingMode, setIsSelectingMode] = useState<boolean | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   const isPointerDown = useRef(false);
   const lastTouchedCellRef = useRef<string | null>(null);
   const dragBaseSlotsRef = useRef<TimeSlot[] | null>(null);
+  const saveStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { user } = useUser();
   const selectedPerson = user ? `user-${user.istId}` : "";
@@ -118,6 +120,14 @@ export default function Disponibilidade() {
   useEffect(() => {
     localStorage.setItem("tlcrab-availability", JSON.stringify(availability));
   }, [availability]);
+
+  useEffect(() => {
+    return () => {
+      if (saveStatusTimeoutRef.current) {
+        clearTimeout(saveStatusTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const isSlotSelected = useCallback(
     (day: number, hour: number, minute: number) => {
@@ -333,10 +343,24 @@ export default function Disponibilidade() {
   const manualSync = async () => {
     if (!user || !isLoggedIn || !selectedPerson) return;
 
+    setSaveStatus("saving");
+
+    if (saveStatusTimeoutRef.current) {
+      clearTimeout(saveStatusTimeoutRef.current);
+    }
+
     try {
       await syncAvailability();
+      setSaveStatus("saved");
+      saveStatusTimeoutRef.current = setTimeout(() => {
+        setSaveStatus("idle");
+      }, 3000);
     } catch (error) {
       console.error("Erro na sincronização:", error);
+      setSaveStatus("error");
+      saveStatusTimeoutRef.current = setTimeout(() => {
+        setSaveStatus("idle");
+      }, 4000);
     }
   };
 
@@ -374,6 +398,24 @@ export default function Disponibilidade() {
           </div>
         )}
 
+        {saveStatus === "saved" && (
+          <div
+            role="status"
+            className="fixed right-4 top-20 z-50 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 shadow-lg"
+          >
+            Disponibilidade guardada com sucesso.
+          </div>
+        )}
+
+        {saveStatus === "error" && (
+          <div
+            role="alert"
+            className="fixed right-4 top-20 z-50 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 shadow-lg"
+          >
+            Não foi possível guardar a disponibilidade.
+          </div>
+        )}
+
         <div className="bg-white rounded-lg shadow mb-8 overflow-x-auto">
           <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">Disponibilidade</h2>
@@ -390,10 +432,10 @@ export default function Disponibilidade() {
 
                 <button
                   onClick={manualSync}
-                  disabled={!selectedPerson}
+                  disabled={!selectedPerson || saveStatus === "saving"}
                   className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded font-medium transition-colors"
                 >
-                  Guardar
+                  {saveStatus === "saving" ? "A guardar..." : "Guardar"}
                 </button>
               </div>
             )}
