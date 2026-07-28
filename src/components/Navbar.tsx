@@ -19,12 +19,17 @@ const Navbar = () => {
     { name: "Gestão", href: "/gestao" },
     { name: "Pessoal", href: "/pessoal" },
     { name: "Disponibilidades", href: "/disponibilidades" },
+    { name: "Gerador", href: "/gerador-turnos" },
   ];
 
   // Filter navigation based on user role
-  const filteredNavigation = isLider
-    ? navigation
-    : navigation.filter(item => item.href === "/pessoal" || item.href === "/calendario");
+  const filteredNavigation = navigation.filter(
+    item =>
+      isLider ||
+      item.href === "/pessoal" ||
+      item.href === "/calendario" ||
+      item.href === "/gerador-turnos"
+  );
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
@@ -59,7 +64,7 @@ const Navbar = () => {
               {/* MOBILE MENU BUTTON */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2 rounded-md text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
+                className="lg:hidden p-2 rounded-md text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
               >
                 {isMobileMenuOpen ? (
                   <svg className="h-6 w-6" fill="none" stroke="currentColor">
@@ -83,7 +88,7 @@ const Navbar = () => {
               </button>
 
               {/* DESKTOP NAVIGATION */}
-              <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center space-x-8">
+              <div className="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center space-x-8">
                 {filteredNavigation.map(item => (
                   <Link
                     key={item.name}
@@ -123,7 +128,7 @@ const Navbar = () => {
 
         {/* MOBILE MENU */}
         {!isLoginPage && isMobileMenuOpen && (
-          <div className="md:hidden bg-black/95 backdrop-blur-md border-t border-white/10 rounded-b-lg px-2 py-3 space-y-1 shadow-lg">
+          <div className="lg:hidden bg-black/95 backdrop-blur-md border-t border-white/10 rounded-b-lg px-2 py-3 space-y-1 shadow-lg">
             {filteredNavigation.map(item => (
               <Link
                 key={item.name}
