@@ -5,6 +5,7 @@ import BackGroundLayout from "../components/BackGroundLayout";
 import { UserProvider } from "../components/UserProvider";
 import "./globals.css";
 import { MemberProvider } from "../components/MemberProvider";
+import FeedbackButton from "../components/FeedbackButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <BackGroundLayout>
               <Navbar />
               {children}
+              <FeedbackButton />
             </BackGroundLayout>
           </MemberProvider>
         </UserProvider>
