@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import type { JSX } from "react";
 import ProtectedPage from "@/src/components/ProtectedPage";
+import { useUser } from "@/src/components/UserProvider";
 import { getTurnos, getEventos, getAllUsers, TurnoAirtable } from "../api/airtable/airtable";
 import { Evento, User } from "@/src/components/Interfaces";
 
@@ -37,6 +38,7 @@ interface DiaCalendario {
 }
 
 type VistaCalendario = "mes" | "semana";
+type FiltroParticipacao = "todos" | "meus";
 
 const DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const HOUR_HEIGHT_PX = 64;
@@ -222,11 +224,14 @@ const getCorPorTipo = (tipo?: string, isPassado?: boolean) => {
 
 export default function Calendario(): JSX.Element {
   // --- ESTADOS ---
+  const { user } = useUser();
   const [turnos, setTurnos] = useState<TurnoLocal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<DiaCalendario | null>(null);
   const [vista, setVista] = useState<VistaCalendario>("mes");
+  const [filtroParticipacao, setFiltroParticipacao] = useState<FiltroParticipacao>("todos");
+  const [filtroDepartamento, setFiltroDepartamento] = useState("");
 
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [airtableUsers, setAirtableUsers] = useState<User[]>([]);
@@ -242,14 +247,75 @@ export default function Calendario(): JSX.Element {
 
   const getNomeEvento = (id: string) => eventos.find(e => e.id === id)?.nome || "---";
 
+  const getUserByParticipantId = useCallback((id?: string) => {
+    if (!id) return undefined;
+    return airtableUsers.find(u => u.id === id || u.istId?.toString() === id);
+  }, [airtableUsers]);
+
+  const departamentosDisponiveis = useMemo(() => {
+    return Array.from(
+      new Set(
+        airtableUsers
+          .map(u => u.department || "Sem Departamento")
+          .filter(department => department.trim() !== "")
+      )
+    ).sort((a, b) => a.localeCompare(b, "pt", { sensitivity: "base" }));
+  }, [airtableUsers]);
+
+  const currentUserParticipantIds = useMemo(() => {
+    if (!user) return new Set<string>();
+
+    const ids = new Set([user.id, user.istId?.toString()].filter(Boolean) as string[]);
+    const matchingUser = airtableUsers.find(
+      airtableUser =>
+        airtableUser.id === user.id || airtableUser.istId?.toString() === user.istId?.toString()
+    );
+
+    if (matchingUser) {
+      ids.add(matchingUser.id);
+      ids.add(matchingUser.istId.toString());
+    }
+
+    return ids;
+  }, [airtableUsers, user]);
+
+  const filteredTurnos = useMemo(() => {
+    return turnos.filter(turno => {
+      const participantes = [...turno.participantesIds, turno.responsavelId].filter(
+        (id): id is string => Boolean(id)
+      );
+
+      if (
+        filtroParticipacao === "meus" &&
+        !participantes.some(id => currentUserParticipantIds.has(id))
+      ) {
+        return false;
+      }
+
+      if (filtroDepartamento) {
+        return participantes.some(
+          id => getUserByParticipantId(id)?.department === filtroDepartamento
+        );
+      }
+
+      return true;
+    });
+  }, [
+    currentUserParticipantIds,
+    filtroDepartamento,
+    filtroParticipacao,
+    getUserByParticipantId,
+    turnos,
+  ]);
+
   // Calendar days
   const calendarDays = useMemo(() => {
-    return generateCalendarDays(currentMonth, turnos);
-  }, [currentMonth, turnos]);
+    return generateCalendarDays(currentMonth, filteredTurnos);
+  }, [currentMonth, filteredTurnos]);
 
   const weekDays = useMemo(() => {
-    return generateWeekDays(currentMonth, turnos);
-  }, [currentMonth, turnos]);
+    return generateWeekDays(currentMonth, filteredTurnos);
+  }, [currentMonth, filteredTurnos]);
 
   const horarioSemana = useMemo(() => getHorarioSemana(weekDays), [weekDays]);
 
@@ -322,6 +388,7 @@ export default function Calendario(): JSX.Element {
     vista === "semana"
       ? `Vista Semanal`
       : `${MESES[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
+  const temFiltrosAtivos = filtroParticipacao !== "todos" || filtroDepartamento !== "";
 
   return (
     <ProtectedPage>
@@ -392,6 +459,61 @@ export default function Calendario(): JSX.Element {
                   </button>
                 </div>
               </div>
+            </div>
+            <div className="mt-4 flex flex-col gap-3 border-t border-gray-200 pt-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex rounded-lg border border-gray-200 bg-white p-1">
+                  <button
+                    onClick={() => setFiltroParticipacao("todos")}
+                    className={`px-3 py-1.5 text-sm font-bold rounded-md transition ${
+                      filtroParticipacao === "todos"
+                        ? "bg-blue-100 text-blue-700"
+                        : "text-gray-500 hover:bg-gray-100"
+                    }`}
+                  >
+                    Todas
+                  </button>
+                  <button
+                    onClick={() => setFiltroParticipacao("meus")}
+                    className={`px-3 py-1.5 text-sm font-bold rounded-md transition ${
+                      filtroParticipacao === "meus"
+                        ? "bg-blue-100 text-blue-700"
+                        : "text-gray-500 hover:bg-gray-100"
+                    }`}
+                  >
+                    As minhas
+                  </button>
+                </div>
+
+                <select
+                  value={filtroDepartamento}
+                  onChange={e => setFiltroDepartamento(e.target.value)}
+                  className="min-h-9 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="">Todos os departamentos</option>
+                  {departamentosDisponiveis.map(department => (
+                    <option key={department} value={department}>
+                      {department}
+                    </option>
+                  ))}
+                </select>
+
+                {temFiltrosAtivos && (
+                  <button
+                    onClick={() => {
+                      setFiltroParticipacao("todos");
+                      setFiltroDepartamento("");
+                    }}
+                    className="px-3 py-1.5 text-sm font-bold text-gray-500 transition hover:text-gray-800"
+                  >
+                    Limpar filtros
+                  </button>
+                )}
+              </div>
+
+              <p className="text-sm font-semibold text-gray-500">
+                {filteredTurnos.length} de {turnos.length} marcações visíveis
+              </p>
             </div>
           </div>
 
