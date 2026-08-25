@@ -29,23 +29,17 @@ interface CandidateShift {
   startMinutes: number;
   endMinutes: number;
   availableIds: string[];
-  requiredAreaAvailableIds: string[];
 }
 
 interface GeneratedShift extends CandidateShift {
   assignedIds: string[];
+  responsibleId: string;
 }
 
 interface ScheduleResult {
   shifts: GeneratedShift[];
   warnings: string[];
   totals: Record<string, number>;
-}
-
-interface CandidateChoice {
-  shift: CandidateShift;
-  assignedIds: string[];
-  score: number;
 }
 
 const CRAB_EVENTS = {
@@ -91,26 +85,6 @@ const convertCrabFitAvailabilityToTimeSlots = (crabAvailability: string[]): Time
   return timeSlots;
 };
 
-const isPersonAvailableForShift = (
-  personId: string,
-  availability: AvailabilityData,
-  day: number,
-  startMinutes: number,
-  endMinutes: number
-) => {
-  const slots = availability[personId] || [];
-  const slotKeys = new Set(slots.map(slot => `${slot.day}-${slot.hour * 60 + slot.minute}`));
-
-  for (let minute = startMinutes; minute < endMinutes; minute += 30) {
-    if (!slotKeys.has(`${day}-${minute}`)) return false;
-  }
-
-  return true;
-};
-
-const shiftsOverlap = (a: CandidateShift, b: CandidateShift) =>
-  a.day === b.day && a.startMinutes < b.endMinutes && b.startMinutes < a.endMinutes;
-
 export default function GeradorTurnos() {
   const [people, setPeople] = useState<Person[]>([]);
   const [availability, setAvailability] = useState<AvailabilityData>({});
@@ -118,6 +92,7 @@ export default function GeradorTurnos() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<ScheduleResult | null>(null);
+  const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null);
 
   const [peoplePerShift, setPeoplePerShift] = useState(3);
   const [shiftDurationHours, setShiftDurationHours] = useState(3);
@@ -125,8 +100,9 @@ export default function GeradorTurnos() {
   const [maxShiftsPerPersonDay, setMaxShiftsPerPersonDay] = useState(1);
   const [globalStartHour, setGlobalStartHour] = useState(8);
   const [globalEndHour, setGlobalEndHour] = useState(21);
-  const [requiredArea, setRequiredArea] = useState("Aerodinâmica");
-  const [requiredAreaPeople, setRequiredAreaPeople] = useState(1);
+  const [selectedResponsibleIds, setSelectedResponsibleIds] = useState<string[]>([]);
+  const [maxResponsibleShiftsPerDay, setMaxResponsibleShiftsPerDay] = useState(2);
+  const [responsibleTargetHoursPerWeek, setResponsibleTargetHoursPerWeek] = useState(9);
   const [targetHoursPerPersonWeek, setTargetHoursPerPersonWeek] = useState(6);
   const [weeklyToleranceHours, setWeeklyToleranceHours] = useState(1.5);
   const [selectedArea, setSelectedArea] = useState("");
@@ -151,11 +127,6 @@ export default function GeradorTurnos() {
 
         setPeople(mappedPeople);
         setDepartments(allDepartments);
-        setRequiredArea(
-          allDepartments.find(department => normalize(department).includes("aerodinam")) ||
-            allDepartments[0] ||
-            ""
-        );
 
         const peopleAvailability = await getPeopleAvailability(CRAB_EVENTS.presencial);
         if (!mounted) return;
@@ -202,11 +173,6 @@ export default function GeradorTurnos() {
     return people.filter(person => normalize(person.area || "") === areaFilter);
   }, [people, selectedArea]);
 
-  const requiredAreaPeopleList = useMemo(() => {
-    const requiredFilter = normalize(requiredArea);
-    return eligiblePeople.filter(person => normalize(person.area || "").includes(requiredFilter));
-  }, [eligiblePeople, requiredArea]);
-
   const suggestedHoursPerPersonWeek = useMemo(() => {
     if (eligiblePeople.length === 0) return 0;
 
@@ -222,179 +188,43 @@ export default function GeradorTurnos() {
     shiftsPerDay,
   ]);
 
-  const getPersonWeeklyHours = (personId: string, totals: Record<string, number>) =>
-    (totals[personId] || 0) * shiftDurationHours;
-
-  const getAssignmentScore = (personId: string, totals: Record<string, number>) => {
-    const currentHours = getPersonWeeklyHours(personId, totals);
-    const nextHours = currentHours + shiftDurationHours;
-    const targetDistance = Math.abs(nextHours - targetHoursPerPersonWeek);
-    const overtime = Math.max(0, nextHours - (targetHoursPerPersonWeek + weeklyToleranceHours));
-    const currentLoad = currentHours / 100;
-
-    return targetDistance + overtime * 20 + currentLoad;
-  };
-
-  const getScheduleBalanceScore = (simulatedTotals: Record<string, number>) => {
-    const personHours = eligiblePeople.map(person =>
-      getPersonWeeklyHours(person.id, simulatedTotals)
-    );
-    const maxHours = Math.max(...personHours, 0);
-    const minHours = Math.min(...personHours, 0);
-
-    return personHours.reduce((score, hours) => {
-      const targetDistance = Math.abs(hours - targetHoursPerPersonWeek);
-      const outsideTolerance = Math.max(0, targetDistance - weeklyToleranceHours);
-      const aboveLimit = Math.max(0, hours - (targetHoursPerPersonWeek + weeklyToleranceHours));
-
-      return score + targetDistance ** 2 + outsideTolerance ** 2 * 8 + aboveLimit ** 2 * 20;
-    }, maxHours - minHours);
-  };
-
-  const generateCandidates = () => {
-    const candidates: CandidateShift[] = [];
-    const durationMinutes = shiftDurationHours * 60;
-    const startMinutes = globalStartHour * 60;
-    const endLimitMinutes = globalEndHour * 60;
-    const requiredAreaIds = new Set(requiredAreaPeopleList.map(person => person.id));
-
-    selectedDays.forEach(day => {
-      for (let start = startMinutes; start <= endLimitMinutes - durationMinutes; start += 30) {
-        const end = start + durationMinutes;
-        const availableIds = eligiblePeople
-          .filter(person => isPersonAvailableForShift(person.id, availability, day, start, end))
-          .map(person => person.id);
-        const requiredAreaAvailableIds = availableIds.filter(id => requiredAreaIds.has(id));
-
-        if (
-          availableIds.length >= peoplePerShift &&
-          requiredAreaAvailableIds.length >= requiredAreaPeople
-        ) {
-          candidates.push({
-            id: `${day}-${start}-${end}`,
-            day,
-            startMinutes: start,
-            endMinutes: end,
-            availableIds,
-            requiredAreaAvailableIds,
-          });
-        }
-      }
-    });
-
-    return candidates;
-  };
-
-  const assignPeopleToShift = (
-    shift: CandidateShift,
-    totals: Record<string, number>,
-    dailyTotals: Record<string, number>
-  ) => {
-    const assigned = new Set<string>();
-    const requiredAreaCandidates = shift.requiredAreaAvailableIds
-      .filter(id => (dailyTotals[id] || 0) < maxShiftsPerPersonDay)
-      .sort((a, b) => {
-        const scoreDiff = getAssignmentScore(a, totals) - getAssignmentScore(b, totals);
-        if (scoreDiff !== 0) return scoreDiff;
-        return getPersonName(a).localeCompare(getPersonName(b));
-      });
-
-    requiredAreaCandidates.slice(0, requiredAreaPeople).forEach(id => assigned.add(id));
-
-    if (assigned.size < requiredAreaPeople) return null;
-
-    const remainingCandidates = shift.availableIds
-      .filter(id => !assigned.has(id) && (dailyTotals[id] || 0) < maxShiftsPerPersonDay)
-      .sort((a, b) => {
-        const scoreDiff = getAssignmentScore(a, totals) - getAssignmentScore(b, totals);
-        if (scoreDiff !== 0) return scoreDiff;
-        return getPersonName(a).localeCompare(getPersonName(b));
-      });
-
-    remainingCandidates.slice(0, peoplePerShift - assigned.size).forEach(id => assigned.add(id));
-
-    return assigned.size === peoplePerShift ? Array.from(assigned) : null;
-  };
-
-  const chooseBestCandidate = (
-    dayCandidates: CandidateShift[],
-    selectedShifts: GeneratedShift[],
-    totals: Record<string, number>,
-    dailyTotals: Record<string, number>
-  ) => {
-    let best: CandidateChoice | null = null;
-
-    for (const shift of dayCandidates) {
-      if (
-        !allowOverlappingShifts &&
-        selectedShifts.some(selectedShift => shiftsOverlap(selectedShift, shift))
-      ) {
-        continue;
-      }
-
-      const assignedIds = assignPeopleToShift(shift, totals, dailyTotals);
-      if (!assignedIds) continue;
-
-      const simulatedTotals = { ...totals };
-      assignedIds.forEach(id => {
-        simulatedTotals[id] = (simulatedTotals[id] || 0) + 1;
-      });
-
-      const balanceScore = getScheduleBalanceScore(simulatedTotals);
-      const availabilityBonus = shift.availableIds.length / 100;
-      const score = balanceScore - availabilityBonus;
-
-      if (!best || score < best.score) {
-        best = { shift, assignedIds, score };
-      }
-    }
-
-    return best;
-  };
-
-  const generateSchedule = () => {
+  const generateSchedule = async () => {
     setIsGenerating(true);
-
-    const candidates = generateCandidates();
-    const totals = Object.fromEntries(eligiblePeople.map(person => [person.id, 0]));
-    const generatedShifts: GeneratedShift[] = [];
-    const warnings: string[] = [];
-
-    selectedDays.forEach(day => {
-      const dayCandidates = candidates.filter(candidate => candidate.day === day);
-      const dailyTotals: Record<string, number> = {};
-      const selectedForDay: GeneratedShift[] = [];
-
-      for (let index = 0; index < shiftsPerDay; index += 1) {
-        const best = chooseBestCandidate(dayCandidates, selectedForDay, totals, dailyTotals);
-
-        if (!best) {
-          warnings.push(
-            `${DAYS[day]}: só foi possível criar ${selectedForDay.length}/${shiftsPerDay} turnos.`
-          );
-          break;
-        }
-
-        const generatedShift: GeneratedShift = {
-          ...best.shift,
-          assignedIds: best.assignedIds,
-        };
-
-        generatedShifts.push(generatedShift);
-        selectedForDay.push(generatedShift);
-        best.assignedIds.forEach(id => {
-          totals[id] = (totals[id] || 0) + 1;
-          dailyTotals[id] = (dailyTotals[id] || 0) + 1;
-        });
-      }
-    });
-
-    if (candidates.length === 0) {
-      warnings.push("Não existem turnos candidatos com estes parâmetros e disponibilidades.");
+    try {
+      const response = await fetch("/api/optimize_shifts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          people,
+          availability,
+          peoplePerShift,
+          shiftDurationHours,
+          shiftsPerDay,
+          maxShiftsPerPersonDay,
+          globalStartHour,
+          globalEndHour,
+          selectedResponsibleIds,
+          maxResponsibleShiftsPerDay,
+          responsibleTargetHoursPerWeek,
+          targetHoursPerPersonWeek,
+          weeklyToleranceHours,
+          selectedArea,
+          selectedDays,
+          allowOverlappingShifts,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Não foi possível otimizar os turnos.");
+      setResult(data as ScheduleResult);
+    } catch (error) {
+      setResult({
+        shifts: [],
+        totals: {},
+        warnings: [error instanceof Error ? error.message : "Erro desconhecido no otimizador."],
+      });
+    } finally {
+      setIsGenerating(false);
     }
-
-    setResult({ shifts: generatedShifts, warnings, totals });
-    setIsGenerating(false);
   };
 
   const getPersonName = (id: string) => people.find(person => person.id === id)?.name || id;
@@ -542,7 +372,7 @@ export default function GeradorTurnos() {
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium text-gray-700">Horas/semana</span>
+                <span className="text-sm font-medium text-gray-700">Horas ajudantes/semana</span>
                 <input
                   type="number"
                   min={0}
@@ -571,31 +401,59 @@ export default function GeradorTurnos() {
             </div>
 
             <div className="mt-4 space-y-4">
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">Departamento obrigatório</span>
-                <select
-                  value={requiredArea}
-                  onChange={event => setRequiredArea(event.target.value)}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                >
-                  {departments.map(department => (
-                    <option key={department} value={department}>
-                      {department}
-                    </option>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700">
+                    Horas responsáveis/semana
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={responsibleTargetHoursPerWeek}
+                    onChange={event => setResponsibleTargetHoursPerWeek(Number(event.target.value))}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-gray-700">Máx. responsável/dia</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={maxResponsibleShiftsPerDay}
+                    onChange={event => setMaxResponsibleShiftsPerDay(Number(event.target.value))}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                  />
+                </label>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Possíveis responsáveis</p>
+                <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-gray-300 p-2">
+                  {eligiblePeople.map(person => (
+                    <label
+                      key={person.id}
+                      className="flex items-center gap-2 rounded px-2 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedResponsibleIds.includes(person.id)}
+                        onChange={event =>
+                          setSelectedResponsibleIds(current =>
+                            event.target.checked
+                              ? [...current, person.id]
+                              : current.filter(id => id !== person.id)
+                          )
+                        }
+                      />
+                      <span>{person.name}</span>
+                      <span className="ml-auto text-xs text-gray-400">{person.area}</span>
+                    </label>
                   ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="text-sm font-medium text-gray-700">Mínimo desse departamento</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={requiredAreaPeople}
-                  onChange={event => setRequiredAreaPeople(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </label>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Cada turno terá exatamente um responsável desta lista.
+                </p>
+              </div>
 
               <label className="block">
                 <span className="text-sm font-medium text-gray-700">Filtrar pessoas por área</span>
@@ -652,7 +510,12 @@ export default function GeradorTurnos() {
 
             <button
               onClick={generateSchedule}
-              disabled={isGenerating || selectedDays.length === 0 || eligiblePeople.length === 0}
+              disabled={
+                isGenerating ||
+                selectedDays.length === 0 ||
+                eligiblePeople.length === 0 ||
+                selectedResponsibleIds.length === 0
+              }
               className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
             >
               <RefreshCw className={`h-4 w-4 ${isGenerating ? "animate-spin" : ""}`} />
@@ -681,9 +544,9 @@ export default function GeradorTurnos() {
               </div>
 
               <div className="bg-white rounded-lg shadow p-5">
-                <p className="text-sm font-medium text-gray-600">Departamento obrigatório</p>
+                <p className="text-sm font-medium text-gray-600">Possíveis responsáveis</p>
                 <p className="mt-2 text-3xl font-bold text-gray-900">
-                  {requiredAreaPeopleList.length}
+                  {selectedResponsibleIds.length}
                 </p>
               </div>
 
@@ -725,7 +588,26 @@ export default function GeradorTurnos() {
                       <h3 className="mb-3 font-semibold text-gray-900">{DAYS[day]}</h3>
                       <div className="space-y-3">
                         {(generatedByDay.get(day) || []).map(shift => (
-                          <div key={shift.id} className="rounded-md border border-gray-200 p-3">
+                          <div
+                            key={shift.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={expandedShiftId === shift.id}
+                            onClick={() =>
+                              setExpandedShiftId(current =>
+                                current === shift.id ? null : shift.id
+                              )
+                            }
+                            onKeyDown={event => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setExpandedShiftId(current =>
+                                  current === shift.id ? null : shift.id
+                                );
+                              }
+                            }}
+                            className="cursor-pointer rounded-md border border-gray-200 p-3 transition hover:border-blue-300 hover:bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
                             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                               <p className="font-semibold text-blue-700">
                                 {minutesToTime(shift.startMinutes)}-
@@ -735,17 +617,80 @@ export default function GeradorTurnos() {
                                 {shift.availableIds.length} pessoas disponíveis
                               </p>
                             </div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {shift.assignedIds.map(id => (
-                                <span
-                                  key={id}
-                                  title={getPersonArea(id)}
-                                  className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800"
-                                >
-                                  {getPersonName(id)}
-                                </span>
-                              ))}
+                            <p className="mt-2 text-sm font-medium text-purple-700">
+                              Responsável: {getPersonName(shift.responsibleId)}
+                            </p>
+                            <p className="mt-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+                              Ajudantes atribuídos
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {shift.assignedIds
+                                .filter(id => id !== shift.responsibleId)
+                                .map(id => (
+                                  <span
+                                    key={id}
+                                    title={getPersonArea(id)}
+                                    className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800"
+                                  >
+                                    {getPersonName(id)}
+                                  </span>
+                                ))}
                             </div>
+
+                            {expandedShiftId === shift.id && (
+                              <div className="mt-4 border-t border-gray-200 pt-4">
+                                <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+                                  <div>
+                                    <dt className="text-gray-500">Duração</dt>
+                                    <dd className="font-medium text-gray-900">
+                                      {(shift.endMinutes - shift.startMinutes) / 60}h
+                                    </dd>
+                                  </div>
+                                  <div>
+                                    <dt className="text-gray-500">Responsável</dt>
+                                    <dd className="font-medium text-purple-700">
+                                      {getPersonName(shift.responsibleId)}
+                                    </dd>
+                                  </div>
+                                  <div>
+                                    <dt className="text-gray-500">Total disponível</dt>
+                                    <dd className="font-medium text-gray-900">
+                                      {shift.availableIds.length}
+                                    </dd>
+                                  </div>
+                                </dl>
+
+                                <p className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-500">
+                                  Pessoas disponíveis neste horário
+                                </p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {shift.availableIds
+                                    .slice()
+                                    .sort((a, b) =>
+                                      getPersonName(a).localeCompare(getPersonName(b))
+                                    )
+                                    .map(id => (
+                                      <span
+                                        key={id}
+                                        title={getPersonArea(id)}
+                                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                          id === shift.responsibleId
+                                            ? "bg-purple-100 text-purple-800"
+                                            : shift.assignedIds.includes(id)
+                                              ? "bg-blue-100 text-blue-800"
+                                              : "bg-gray-100 text-gray-700"
+                                        }`}
+                                      >
+                                        {getPersonName(id)} · {getPersonArea(id)}
+                                      </span>
+                                    ))}
+                                </div>
+                                <p className="mt-3 text-xs text-gray-500">
+                                  Roxo: responsável · Azul: ajudante atribuído · Cinzento:
+                                  disponível
+                                </p>
+                              </div>
+                            )}
                           </div>
                         ))}
                         {(generatedByDay.get(day) || []).length === 0 && (
