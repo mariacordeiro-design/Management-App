@@ -501,7 +501,6 @@ export default function Turnos(): JSX.Element {
       if (!nomeTurno.trim()) return alert("Por favor, dê um nome à marcação!");
       if (!dataFinal) return alert("Selecione uma data!");
       if (
-        !eventoSelecionado ||
         !horaInicio ||
         !horaFim ||
         participantesSelecionadosIds.length === 0 ||
@@ -536,24 +535,26 @@ export default function Turnos(): JSX.Element {
         }
       }
 
-      const eventoSelecionadoData = eventos.find(ev => ev.id === eventoSelecionado);
-      if (!eventoSelecionadoData) {
-        return alert("Evento inválido.");
-      }
-
-      const dataInicioEvento = parseDataISO(eventoSelecionadoData.dataInicio);
-      const dataFimEvento = parseDataISO(eventoSelecionadoData.dataFim);
-
-      if (!dataInicioEvento || !dataFimEvento) {
-        return alert("O evento associado tem datas inválidas. Verifique o evento.");
-      }
-
-      if (dataTurno < dataInicioEvento || dataTurno > dataFimEvento) {
-        return alert("A data da marcação tem de estar dentro do intervalo do evento.");
-      }
-
-      if (dataLimite && (dataLimite < dataInicioEvento || dataLimite > dataFimEvento)) {
-        return alert("A data limite da recorrência tem de estar dentro do intervalo do evento.");
+      if (eventoSelecionado) {
+        const eventoSelecionadoData = eventos.find(ev => ev.id === eventoSelecionado);
+        if (!eventoSelecionadoData) {
+          return alert("Evento inválido.");
+        }
+  
+        const dataInicioEvento = parseDataISO(eventoSelecionadoData.dataInicio);
+        const dataFimEvento = parseDataISO(eventoSelecionadoData.dataFim);
+  
+        if (!dataInicioEvento || !dataFimEvento) {
+          return alert("O evento associado tem datas inválidas. Verifique o evento.");
+        }
+  
+        if (dataTurno < dataInicioEvento || dataTurno > dataFimEvento) {
+          return alert("A data da marcação tem de estar dentro do intervalo do evento.");
+        }
+  
+        if (dataLimite && (dataLimite < dataInicioEvento || dataLimite > dataFimEvento)) {
+          return alert("A data limite da recorrência tem de estar dentro do intervalo do evento.");
+        }
       }
 
       const responsavelRecId = getRecordId(responsavelSelecionadoId);
@@ -851,14 +852,14 @@ export default function Turnos(): JSX.Element {
                 {/* Evento */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700">
-                    Evento Associado *
+                    Evento Associado (opcional)
                   </label>
                   <select
                     value={eventoSelecionado}
                     onChange={e => setEventoSelecionado(e.target.value)}
                     className="w-full p-2 border rounded text-black mt-1"
                   >
-                    <option value="">Selecione...</option>
+                    <option value="">Sem evento associado</option>
                     {eventos.map(ev => (
                       <option key={ev.id} value={ev.id}>
                         {ev.nome}

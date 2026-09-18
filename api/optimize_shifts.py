@@ -105,6 +105,13 @@ def optimize_schedule(data):
                     if left["startMinutes"] < right["endMinutes"] and right["startMinutes"] < left["endMinutes"]:
                         model.add(selected[left_i] + selected[right_i] <= 1)
 
+    # Enforce weekly limits before maximizing coverage, including all assignments
+    # for eligible responsible people, even when they join as helpers.
+    for pid in person_ids:
+        person_target = responsible_target_units if pid in responsible_ids else target_units
+        weekly_assignments = [var for (_, assigned_pid), var in assigned.items() if assigned_pid == pid]
+        model.add(sum(weekly_assignments) * duration_units <= person_target + tolerance_units)
+
     total_selected = sum(selected)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 8
@@ -116,7 +123,7 @@ def optimize_schedule(data):
     maximum_shifts = as_int(round(solver.objective_value))
     model.add(total_selected == maximum_shifts)
 
-    deviations, overloads, zero_flags, totals = [], [], [], {}
+    deviations, zero_flags, totals = [], [], {}
     max_assignments = max(1, len(days) * max(daily_max, responsible_daily_max))
     max_units = max_assignments * duration_units
     for pid in person_ids:
@@ -130,15 +137,12 @@ def optimize_schedule(data):
         deviation = model.new_int_var(0, max(person_target, max_units), f"deviation_{pid}")
         model.add_abs_equality(deviation, hours - person_target)
         deviations.append(deviation)
-        overload = model.new_int_var(0, max_units, f"overload_{pid}")
-        model.add_max_equality(overload, [hours - person_target - tolerance_units, 0])
-        overloads.append(overload)
         zero = model.new_bool_var(f"zero_{pid}")
         model.add(total == 0).only_enforce_if(zero)
         model.add(total >= 1).only_enforce_if(zero.Not())
         zero_flags.append(zero)
 
-    model.minimize(sum(deviations) + 20 * sum(overloads) + 4 * sum(zero_flags))
+    model.minimize(sum(deviations) + 4 * sum(zero_flags))
     solver.parameters.max_time_in_seconds = 12
     status = solver.solve(model)
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):

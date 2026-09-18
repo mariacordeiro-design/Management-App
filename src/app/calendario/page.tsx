@@ -624,9 +624,11 @@ export default function Calendario(): JSX.Element {
                             >
                               {turno.nome || "Sem título"}
                             </h3>
+                            {turno.eventoId && (
                             <p className="text-xs text-gray-500 mt-0.5">
                               Evento: {getNomeEvento(turno.eventoId)}
                             </p>
+                            )}
                           </div>
 
                           <div

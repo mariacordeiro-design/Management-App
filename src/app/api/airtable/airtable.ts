@@ -262,7 +262,7 @@ export async function getTurnosAtivos(): Promise<Turno[]> {
     return records
       .map(record => {
         const rawEvento = record.get('Evento');
-        const safeEvento = Array.isArray(rawEvento) && rawEvento.length > 0 ? rawEvento[0] : [];
+        const safeEvento = Array.isArray(rawEvento) && rawEvento.length > 0 ? rawEvento[0] : 'Sem Evento';
         const rawData = {
           id: record.id,
           nome: record.get('Nome')?.toString() || 'Sem Nome',
@@ -288,7 +288,7 @@ export async function getHistoricoTurnos(): Promise<Turno[]> {
     return records
       .map(record => {
         const rawEvento = record.get('Evento');
-        const safeEvento = Array.isArray(rawEvento) && rawEvento.length > 0 ? rawEvento[0] : [];
+        const safeEvento = Array.isArray(rawEvento) && rawEvento.length > 0 ? rawEvento[0] : 'Sem Evento';
         const rawData = {
           id: record.id,
           nome: record.get('Nome')?.toString() || 'Sem Nome',
@@ -365,7 +365,7 @@ export async function getTurnos(): Promise<TurnoAirtable[]> {
         responsavelId: responsavelArr?.[0] || '',
         observacoes: (record.get('Observações') as string) || '',
         tipo: record.get('Tipo') as any,
-        isRecurring: record.get('Recorrente') as boolean,
+        isRecurring: Boolean(record.get('Data Limite Recorrência')),
         dataLimiteRecorrencia: record.get('Data Limite Recorrência') as string,
       };
     });
@@ -381,11 +381,10 @@ export async function criarTurno(payload: Omit<TurnoAirtable, 'id'>): Promise<st
       Nome: payload.nome,
       'Data Início': combineDateAndTimeToISO(payload.data, payload.horaInicio),
       'Data Fim': combineDateAndTimeToISO(payload.data, payload.horaFim),
-      Evento: [payload.eventoId],
+      Evento: payload.eventoId ? [payload.eventoId] : [],
       Participantes: payload.participantesIds,
       Observações: payload.observacoes || '',
       Tipo: payload.tipo,
-      Recorrente: payload.isRecurring,
       'Data Limite Recorrência': payload.dataLimiteRecorrencia,
     };
 
@@ -409,11 +408,10 @@ export async function editarTurno(
       Nome: payload.nome,
       'Data Início': combineDateAndTimeToISO(payload.data, payload.horaInicio),
       'Data Fim': combineDateAndTimeToISO(payload.data, payload.horaFim),
-      Evento: [payload.eventoId],
+      Evento: payload.eventoId ? [payload.eventoId] : [],
       Participantes: payload.participantesIds,
       Observações: payload.observacoes || '',
       Tipo: payload.tipo,
-      Recorrente: payload.isRecurring,
       'Data Limite Recorrência': payload.dataLimiteRecorrencia,
     };
 
