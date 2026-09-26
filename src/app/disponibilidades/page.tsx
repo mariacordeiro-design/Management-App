@@ -42,6 +42,7 @@ const CRAB_EVENTS = {
 };
 
 export default function Disponibilidades() {
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedArea, setSelectedArea] = useState<string>("");
   const [availability, setAvailability] = useState<AvailabilityData>({});
@@ -51,6 +52,7 @@ export default function Disponibilidades() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const [selectedPersonIds, setSelectedPersonIds] = useState<string[]>([]);
+  const [inactivePersonIds, setInactivePersonIds] = useState<string[]>([]);
 
   // Função para converter CrabFit availability format para TimeSlot[]
   const convertCrabFitAvailabilityToTimeSlots = (crabAvailability: string[]): TimeSlot[] => {
@@ -99,21 +101,46 @@ export default function Disponibilidades() {
       .slice(0, 10); // Limit to 5 suggestions
   };
 
+  const handleAreaChange = (area: string) => {
+    setSelectedArea(area);
+    setInactivePersonIds([]);
+    setSelectedPersonIds(
+      area
+        ? users
+            .filter(person => normalize(person.area || "") === normalize(area))
+            .map(person => person.id)
+        : []
+    );
+    setSearchTerm("");
+    setShowSuggestions(false);
+  };
+
   // Handle person selection from suggestions
   const handlePersonSelect = (person: Person) => {
     setSelectedPersonIds(prev => [...prev, person.id]);
+    setInactivePersonIds(prev => prev.filter(id => id !== person.id));
     setSearchTerm("");
     setShowSuggestions(false);
+  };
+
+  const togglePersonAvailability = (personId: string) => {
+    setInactivePersonIds(current =>
+      current.includes(personId)
+        ? current.filter(id => id !== personId)
+        : [...current, personId]
+    );
   };
 
   // Handle person removal
   const handlePersonRemove = (personId: string) => {
     setSelectedPersonIds(prev => prev.filter(id => id !== personId));
+    setInactivePersonIds(prev => prev.filter(id => id !== personId));
   };
 
   // Clear all selected people
   const clearSelectedPeople = () => {
     setSelectedPersonIds([]);
+    setInactivePersonIds([]);
   };
 
   // Filtrar pessoas baseado nos selecionados e área
@@ -122,7 +149,7 @@ export default function Disponibilidades() {
 
     // Filter by selected people (if any are selected)
     if (selectedPersonIds.length > 0) {
-      filtered = filtered.filter(person => selectedPersonIds.includes(person.id));
+      filtered = filtered.filter(person => selectedPersonIds.includes(person.id) && !inactivePersonIds.includes(person.id));
     }
 
     // Filter by area
@@ -132,7 +159,7 @@ export default function Disponibilidades() {
     }
 
     setFilteredPeople(filtered);
-  }, [selectedPersonIds, selectedArea, users]);
+  }, [selectedPersonIds, inactivePersonIds, selectedArea, users]);
 
   // Load data
   useEffect(() => {
@@ -369,14 +396,26 @@ export default function Disponibilidades() {
                       Limpar todas
                     </button>
                   </div>
+                  <p className="mb-2 text-xs text-gray-500">Clica no nome para mostrar ou ocultar a disponibilidade. O × remove a pessoa da lista.</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedPeople.map(person => (
                       <div
                         key={person.id}
-                        className="inline-flex items-center bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full"
+                        className={`inline-flex items-center text-sm px-2 py-1 rounded-full ${inactivePersonIds.includes(person.id) ? "bg-gray-100 text-gray-500" : "bg-blue-100 text-blue-800"}`}
                       >
-                        <span>{person.name}</span>
                         <button
+                          type="button"
+                          onClick={() => togglePersonAvailability(person.id)}
+                          aria-pressed={!inactivePersonIds.includes(person.id)}
+                          aria-label={(inactivePersonIds.includes(person.id) ? "Mostrar disponibilidade de " : "Ocultar disponibilidade de ") + person.name}
+                          className="rounded px-1 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        >
+                          {person.name}
+                          {inactivePersonIds.includes(person.id) && <span className="ml-1 text-xs"></span>}
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={"Remover " + person.name + " da lista"}
                           onClick={() => handlePersonRemove(person.id)}
                           className="ml-1 text-blue-600 hover:text-blue-800"
                         >
@@ -396,7 +435,7 @@ export default function Disponibilidades() {
               <select
                 id="area-filter"
                 value={selectedArea}
-                onChange={e => setSelectedArea(e.target.value)}
+                onChange={e => handleAreaChange(e.target.value)}
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
                  focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-700"
               >
@@ -467,13 +506,25 @@ export default function Disponibilidades() {
                               `}
                               title={`${count}/${filteredPeople.length} pessoas (${percentage}%)\n${peopleAtSlot.join(", ")}`}
                             >
-                              <span className="text-xs font-medium text-gray-700">
+                              <button
+                                type="button"
+                                aria-label={DAYS[dayIndex] + " " + timeSlot.hour.toString().padStart(2, "0") + ":" + timeSlot.minute.toString().padStart(2, "0") + ": " + count + " pessoas disponíveis"}
+                                aria-expanded={selectedSlot?.day === dayIndex && selectedSlot.hour === timeSlot.hour && selectedSlot.minute === timeSlot.minute}
+                                aria-controls="slot-people"
+                                onClick={() => setSelectedSlot(current =>
+                                  current?.day === dayIndex && current.hour === timeSlot.hour && current.minute === timeSlot.minute
+                                    ? null
+                                    : { day: dayIndex, hour: timeSlot.hour, minute: timeSlot.minute }
+                                )}
+                                onKeyDown={event => { if (event.key === "Escape") setSelectedSlot(null); }}
+                                className="h-full w-full rounded text-xs font-medium text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                              >
                                 {count > 0 ? count : ""}
-                              </span>
+                              </button>
 
                               {/* Tooltip on hover */}
                               {peopleAtSlot.length > 0 && (
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap pointer-events-none">
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity z-20 whitespace-nowrap pointer-events-none">
                                   <div className="font-semibold">
                                     {count}/{filteredPeople.length} pessoas ({percentage}%)
                                   </div>
@@ -491,6 +542,34 @@ export default function Disponibilidades() {
             </div>
           </div>
         </div>
+        {selectedSlot && (
+          <section
+            id="slot-people"
+            aria-label="Pessoas disponíveis no horário selecionado"
+            onKeyDown={event => { if (event.key === "Escape") setSelectedSlot(null); }}
+            className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-lg rounded-lg border border-blue-200 bg-white p-4 shadow-xl"
+          >
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h3 className="font-semibold text-gray-900">
+                {DAYS[selectedSlot.day]} · {String(selectedSlot.hour).padStart(2, "0")}:{String(selectedSlot.minute).padStart(2, "0")}
+              </h3>
+              <button type="button" onClick={() => setSelectedSlot(null)} className="rounded px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">
+                Fechar
+              </button>
+            </div>
+            <div className="max-h-[40vh] overflow-y-auto text-sm text-gray-700" aria-live="polite">
+              {(() => {
+                const names = getPeopleAtSlot(selectedSlot.day, selectedSlot.hour, selectedSlot.minute);
+                return names.length ? (
+                  <>
+                    <p className="mb-2">{names.length} pessoas disponíveis (filtros atuais):</p>
+                    <ul className="space-y-1">{names.map((name, index) => <li key={index}>{name}</li>)}</ul>
+                  </>
+                ) : <p>Nenhuma pessoa disponível com os filtros atuais.</p>;
+              })()}
+            </div>
+          </section>
+        )}
         {/* Estatísticas Gerais */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Estatísticas Gerais</h3>
