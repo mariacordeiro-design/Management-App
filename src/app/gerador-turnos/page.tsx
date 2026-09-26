@@ -135,6 +135,7 @@ export default function GeradorTurnos() {
 
   const [weekDate, setWeekDate] = useState("");
   const [selectedShiftIds, setSelectedShiftIds] = useState<string[]>([]);
+  const [shiftNames, setShiftNames] = useState<Record<string, string>>({});
   const [savedKeys, setSavedKeys] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const savingRef = useRef(false);
@@ -237,6 +238,7 @@ export default function GeradorTurnos() {
   const generateSchedule = async () => {
     if (savingRef.current) return;
     setSelectedShiftIds([]);
+    setShiftNames({});
     setSaveMessage("");
     setIsGenerating(true);
     try {
@@ -279,10 +281,19 @@ export default function GeradorTurnos() {
   const getPersonName = (id: string) => people.find(person => person.id === id)?.name || id;
 
   const shiftDate = (shift: GeneratedShift) => {
+    const now = new Date();
     const date = new Date(weekDate + "T12:00:00");
-    date.setDate(date.getDate() - ((date.getDay() + 6) % 7) + ((shift.day + 6) % 7));
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
+    if (date < today) date.setTime(today.getTime());
+    date.setDate(date.getDate() + ((shift.day - date.getDay() + 7) % 7));
+    const start = new Date(date);
+    start.setHours(Math.floor(shift.startMinutes / 60), shift.startMinutes % 60, 0, 0);
+    if (start <= now) date.setDate(date.getDate() + 7);
     return [String(date.getDate()).padStart(2, "0"), String(date.getMonth() + 1).padStart(2, "0"), date.getFullYear()].join("/");
   };
+
+  const suggestedShiftName = (shift: GeneratedShift) =>
+    "Turno - " + DAYS[shift.day] + " " + minutesToTime(shift.startMinutes) + "-" + minutesToTime(shift.endMinutes);
 
   const shiftKey = (shift: GeneratedShift) => JSON.stringify([
     shiftDate(shift), shift.startMinutes, shift.endMinutes,
@@ -302,7 +313,7 @@ export default function GeradorTurnos() {
     try {
       for (const shift of selected) {
         await criarTurno({
-          nome: "Turno - " + DAYS[shift.day] + " " + minutesToTime(shift.startMinutes) + "-" + minutesToTime(shift.endMinutes),
+          nome: shiftNames[shift.id]?.trim() || suggestedShiftName(shift),
           data: shiftDate(shift),
           horaInicio: minutesToTime(shift.startMinutes),
           horaFim: minutesToTime(shift.endMinutes),
@@ -680,9 +691,9 @@ export default function GeradorTurnos() {
                 <div className="divide-y divide-gray-200">
                   {result.shifts.length > 0 && (
                     <div className="space-y-3 p-4 text-sm text-gray-700">
-                      <p>Seleciona uma data da semana pretendida e os turnos a adicionar.</p>
+                      <p>Seleciona a data a partir da qual queres marcar os turnos. Cada turno fica na próxima ocorrência do seu dia da semana; se o horário de hoje já passou, fica para a semana seguinte.</p>
                       <div className="flex flex-wrap gap-3">
-                        <label>Uma data da semana pretendida
+                        <label>Marcar turnos a partir de
                           <input type="date" value={weekDate} disabled={isSaving} onChange={event => { setWeekDate(event.target.value); setSelectedShiftIds([]); setSaveMessage(""); }} className="mt-1 block rounded border p-2" />
                         </label>
                       </div>
@@ -714,6 +725,25 @@ export default function GeradorTurnos() {
                               {savedKeys.includes(shiftKey(shift)) ? "Adicionado ao calendário" : "Selecionar turno"}
                               {weekDate && <span>· {shiftDate(shift)}</span>}
                             </label>
+                            {selectedShiftIds.includes(shift.id) && (
+                              <label className="mb-3 block text-sm font-medium text-gray-700">
+                                Nome do turno
+                                <input
+                                  type="text"
+                                  value={shiftNames[shift.id] ?? suggestedShiftName(shift)}
+                                  onChange={event => setShiftNames(current => ({
+                                    ...current,
+                                    [shift.id]: event.target.value,
+                                  }))}
+                                  disabled={isSaving}
+                                  placeholder={suggestedShiftName(shift)}
+                                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 disabled:bg-gray-100"
+                                />
+                                <span className="mt-1 block text-xs font-normal text-gray-500">
+                                  Se ficar vazio, será usado o nome sugerido.
+                                </span>
+                              </label>
+                            )}
                             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                               <p className="font-semibold text-blue-700">
                                 {minutesToTime(shift.startMinutes)}-
