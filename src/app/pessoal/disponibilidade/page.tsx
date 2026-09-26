@@ -281,6 +281,22 @@ export default function Disponibilidade() {
     [applySelectionRange, dragStart, isLoggedIn, isSelectingMode, selectedPerson]
   );
 
+  const clearAvailability = () => {
+    if (!selectedPerson || !isLoggedIn || saveStatus === "saving") return;
+
+    isPointerDown.current = false;
+    lastTouchedCellRef.current = null;
+    dragBaseSlotsRef.current = null;
+    setDragStart(null);
+    setIsSelectingMode(null);
+    if (saveStatusTimeoutRef.current) {
+      clearTimeout(saveStatusTimeoutRef.current);
+      saveStatusTimeoutRef.current = null;
+    }
+    setSaveStatus("idle");
+    setAvailability(current => ({ ...current, [selectedPerson]: [] }));
+  };
+
   const invertAvailability = () => {
     if (!selectedPerson || !isLoggedIn) return;
 
@@ -417,7 +433,7 @@ export default function Disponibilidade() {
         )}
 
         <div className="bg-white rounded-lg shadow mb-8 overflow-x-auto">
-          <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+          <div className="p-4 border-b bg-gray-50 flex flex-wrap gap-3 justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">Disponibilidade</h2>
 
             {isLoggedIn && (
@@ -428,6 +444,15 @@ export default function Disponibilidade() {
                   className="bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded font-medium transition-colors"
                 >
                   Inverter
+                </button>
+
+                <button
+                  type="button"
+                  onClick={clearAvailability}
+                  disabled={!selectedPerson || saveStatus === "saving" || !(availability[selectedPerson] || []).length}
+                  className="bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded font-medium transition-colors"
+                >
+                  Limpar
                 </button>
 
                 <button
