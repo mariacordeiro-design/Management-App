@@ -44,6 +44,14 @@ const WEEK_VIEW_START_MINUTES = 8 * 60;
 const WEEK_VIEW_END_MINUTES = 24 * 60;
 
 // --- HELPERS ---
+const getLisbonToday = (): Date => {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: string) => Number(parts.find(part => part.type === type)?.value);
+  return new Date(value("year"), value("month") - 1, value("day"));
+};
+
 const getWeekDayFromDate = (dateStr: string): number => {
   if (!dateStr) return 0;
   const [day, month, year] = dateStr.split("/").map(Number);
@@ -75,7 +83,7 @@ const parseDateString = (dateStr: string): Date => {
 const isTurnoFuturo = (turno: TurnoLocal): boolean => {
   if (!turno.dataCompleta) return false;
   const turnoDate = parseDateString(turno.dataCompleta);
-  const today = new Date();
+  const today = getLisbonToday();
   today.setHours(0, 0, 0, 0);
   return turnoDate >= today;
 };
@@ -88,7 +96,7 @@ const expandirTurnosRecorrentes = (turnosOriginais: TurnoLocal[]): TurnoLocal[] 
     listaExpandida.push(turno); // Adiciona o real
 
     if (turno.tipo !== "Turno" && turno.dataLimiteRecorrencia) {
-      const dataLimite = new Date(turno.dataLimiteRecorrencia);
+      const dataLimite = parseDateString(turno.dataLimiteRecorrencia.slice(0, 10).split("-").reverse().join("/"));
       let dataReferencia = parseDateString(turno.dataCompleta!);
 
       while (true) {
@@ -128,7 +136,7 @@ const generateCalendarDays = (currentDate: Date, turnos: TurnoLocal[]): DiaCalen
   startDate.setDate(firstDayOfMonth.getDate() - daysToSubtract);
 
   const days: DiaCalendario[] = [];
-  const today = new Date();
+  const today = getLisbonToday();
 
   for (let i = 0; i < 42; i++) {
     const currentDay = new Date(startDate);
@@ -157,7 +165,7 @@ const generateCalendarDays = (currentDate: Date, turnos: TurnoLocal[]): DiaCalen
 
 const generateWeekDays = (currentDate: Date, turnos: TurnoLocal[]): DiaCalendario[] => {
   const startDate = getStartOfWeek(currentDate);
-  const today = new Date();
+  const today = getLisbonToday();
 
   return Array.from({ length: 7 }, (_, index) => {
     const currentDay = new Date(startDate);
@@ -260,7 +268,7 @@ export default function Calendario(): JSX.Element {
   // --- ESTADOS ---
   const [turnos, setTurnos] = useState<TurnoLocal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(getLisbonToday);
   const [selectedDay, setSelectedDay] = useState<DiaCalendario | null>(null);
   const [vista, setVista] = useState<VistaCalendario>("mes");
 
@@ -352,7 +360,7 @@ export default function Calendario(): JSX.Element {
       }
       return new Date(prev.getFullYear(), prev.getMonth() + 1, 1);
     });
-  const goToToday = () => setCurrentMonth(new Date());
+  const goToToday = () => setCurrentMonth(getLisbonToday());
 
   const tituloCalendario =
     vista === "semana"

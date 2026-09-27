@@ -175,12 +175,12 @@ export default function Eventos() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                       <div className="whitespace-nowrap">
-                        {new Date(evento.dataInicio).toLocaleDateString("pt-PT")}
+                        {new Date(evento.dataInicio).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon" })}
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                       <div className="whitespace-nowrap">
-                        {new Date(evento.dataFim).toLocaleDateString("pt-PT")}
+                        {new Date(evento.dataFim).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon" })}
                       </div>
                     </td>
                     {isLider && (
@@ -257,13 +257,13 @@ export default function Eventos() {
                   <div>
                     <span className="font-medium text-gray-500 block">Data Início:</span>
                     <span className="text-gray-700">
-                      {new Date(evento.dataInicio).toLocaleDateString("pt-PT")}
+                      {new Date(evento.dataInicio).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon" })}
                     </span>
                   </div>
                   <div>
                     <span className="font-medium text-gray-500 block">Data Fim:</span>
                     <span className="text-gray-700">
-                      {new Date(evento.dataFim).toLocaleDateString("pt-PT")}
+                      {new Date(evento.dataFim).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon" })}
                     </span>
                   </div>
                 </div>

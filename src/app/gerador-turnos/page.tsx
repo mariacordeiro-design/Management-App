@@ -281,15 +281,19 @@ export default function GeradorTurnos() {
   const getPersonName = (id: string) => people.find(person => person.id === id)?.name || id;
 
   const shiftDate = (shift: GeneratedShift) => {
-    const now = new Date();
-    const date = new Date(weekDate + "T12:00:00");
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
-    if (date < today) date.setTime(today.getTime());
-    date.setDate(date.getDate() + ((shift.day - date.getDay() + 7) % 7));
-    const start = new Date(date);
-    start.setHours(Math.floor(shift.startMinutes / 60), shift.startMinutes % 60, 0, 0);
-    if (start <= now) date.setDate(date.getDate() + 7);
-    return [String(date.getDate()).padStart(2, "0"), String(date.getMonth() + 1).padStart(2, "0"), date.getFullYear()].join("/");
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date());
+    const value = (type: string) => Number(parts.find(part => part.type === type)?.value);
+    const today = Date.UTC(value("year"), value("month") - 1, value("day"));
+    const [year, month, day] = weekDate.split("-").map(Number);
+    const date = new Date(Math.max(Date.UTC(year, month - 1, day), today));
+    date.setUTCDate(date.getUTCDate() + ((shift.day - date.getUTCDay() + 7) % 7));
+    if (date.getTime() === today && shift.startMinutes <= value("hour") * 60 + value("minute")) {
+      date.setUTCDate(date.getUTCDate() + 7);
+    }
+    return [String(date.getUTCDate()).padStart(2, "0"), String(date.getUTCMonth() + 1).padStart(2, "0"), date.getUTCFullYear()].join("/");
   };
 
   const suggestedShiftName = (shift: GeneratedShift) =>

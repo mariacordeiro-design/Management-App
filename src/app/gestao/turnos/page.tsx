@@ -46,6 +46,14 @@ interface ParticipanteDisponivel {
 }
 
 // --- HELPERS ---
+const getLisbonToday = (): Date => {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: string) => Number(parts.find(part => part.type === type)?.value);
+  return new Date(value("year"), value("month") - 1, value("day"));
+};
+
 const getWeekDayFromDate = (dateStr: string): number => {
   if (!dateStr) return 0;
   const [day, month, year] = dateStr.split("/").map(Number);
@@ -61,7 +69,7 @@ const formatDateToDDMMYYYY = (date: Date): string => {
 };
 
 const getNextDateForWeekday = (weekday: number): string => {
-  const today = new Date();
+  const today = getLisbonToday();
   const daysUntilTarget = (weekday - today.getDay() + 7) % 7;
   const targetDate = new Date(today);
   targetDate.setDate(today.getDate() + (daysUntilTarget === 0 ? 7 : daysUntilTarget));
@@ -96,9 +104,14 @@ const parseDataDDMMYYYY = (value: string): Date | null => {
 
 const parseDataISO = (value: string): Date | null => {
   if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return parseDataDDMMYYYY(value.split("-").reverse().join("/"));
+  }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
-  return normalizarData(parsed);
+  return parseDataDDMMYYYY(parsed.toLocaleDateString("pt-PT", {
+    timeZone: "Europe/Lisbon", day: "2-digit", month: "2-digit", year: "numeric",
+  }));
 };
 
 const expandirTurnosRecorrentes = (turnosOriginais: TurnoLocal[]): TurnoLocal[] => {
@@ -108,7 +121,8 @@ const expandirTurnosRecorrentes = (turnosOriginais: TurnoLocal[]): TurnoLocal[] 
     listaExpandida.push(turno);
 
     if (turno.tipo !== "Turno" && turno.dataLimiteRecorrencia) {
-      const dataLimite = new Date(turno.dataLimiteRecorrencia);
+      const dataLimite = parseDataISO(turno.dataLimiteRecorrencia);
+      if (!dataLimite) return;
       let dataReferencia = converterStringParaData(turno.dataCompleta!);
 
       while (true) {
@@ -132,7 +146,7 @@ const isTurnoFuturo = (turno: TurnoLocal): boolean => {
   if (!turno.dataCompleta) return false;
   const [day, month, year] = turno.dataCompleta.split("/").map(Number);
   const turnoDate = new Date(year, month - 1, day);
-  const today = new Date();
+  const today = getLisbonToday();
   today.setHours(0, 0, 0, 0);
   return turnoDate >= today;
 };
@@ -519,7 +533,7 @@ export default function Turnos(): JSX.Element {
         return alert("A data escolhida é inválida.");
       }
 
-      const hoje = normalizarData(new Date());
+      const hoje = getLisbonToday();
       if (!isEditing && dataTurno < hoje) {
         return alert("Não é possível criar marcações em datas passadas.");
       }
