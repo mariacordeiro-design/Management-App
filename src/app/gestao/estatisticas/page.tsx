@@ -33,7 +33,7 @@ const generateColor = (index: number, total: number) => {
   const hue = (index * 360) / total;
   const saturation = 65;
   const lightness = 55;
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  return `hsl(var(--profile-chart-hue, ${hue}) var(--profile-chart-saturation, ${saturation}%) var(--profile-chart-lightness-${index % 6}, ${lightness}%))`;
 };
 
 const AVAILABILITY_EVENT_ID = "tlmoto-940143";

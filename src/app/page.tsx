@@ -232,89 +232,87 @@ export default function Home() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Ações Rápidas</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {isLider && (
-                  <>
-                    <Link
-                      href="/gestao/eventos"
-                      className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition group"
-                    >
-                      <div className="bg-blue-100 rounded-lg p-3 group-hover:bg-blue-200 transition">
-                        <svg
-                          className="w-6 h-6 text-blue-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Gerir Eventos</p>
-                        <p className="text-sm text-gray-500">Ver e criar eventos</p>
-                      </div>
-                    </Link>
+            {isLider && (
+              <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Ações Rápidas</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Link
+                        href="/gestao/eventos"
+                        className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition group"
+                      >
+                        <div className="bg-blue-100 rounded-lg p-3 group-hover:bg-blue-200 transition">
+                          <svg
+                            className="w-6 h-6 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Gerir Eventos</p>
+                          <p className="text-sm text-gray-500">Ver e criar eventos</p>
+                        </div>
+                      </Link>
 
-                    <Link
-                      href="/gestao/turnos"
-                      className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition group"
-                    >
-                      <div className="bg-green-100 rounded-lg p-3 group-hover:bg-green-200 transition">
-                        <svg
-                          className="w-6 h-6 text-green-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Gerir Turnos</p>
-                        <p className="text-sm text-gray-500">Ver e atribuir turnos</p>
-                      </div>
-                    </Link>
+                      <Link
+                        href="/gestao/turnos"
+                        className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition group"
+                      >
+                        <div className="bg-green-100 rounded-lg p-3 group-hover:bg-green-200 transition">
+                          <svg
+                            className="w-6 h-6 text-green-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Gerir Turnos</p>
+                          <p className="text-sm text-gray-500">Ver e atribuir turnos</p>
+                        </div>
+                      </Link>
 
-                    <Link
-                      href="/gestao/membros"
-                      className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition group"
-                    >
-                      <div className="bg-purple-100 rounded-lg p-3 group-hover:bg-purple-200 transition">
-                        <svg
-                          className="w-6 h-6 text-purple-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Gerir Membros</p>
-                        <p className="text-sm text-gray-500">Ver equipa</p>
-                      </div>
-                    </Link>
-                  </>
-                )}
+                      <Link
+                        href="/gestao/membros"
+                        className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition group"
+                      >
+                        <div className="bg-purple-100 rounded-lg p-3 group-hover:bg-purple-200 transition">
+                          <svg
+                            className="w-6 h-6 text-purple-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Gerir Membros</p>
+                          <p className="text-sm text-gray-500">Ver equipa</p>
+                        </div>
+                      </Link>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
               <div className="flex items-center justify-between mb-4">
@@ -336,20 +334,20 @@ export default function Home() {
                           {obterTituloTurno(turno)}
                         </h3>
                         <p className="text-sm text-gray-500 mt-1">
-                          {new Date(turno.dataInicio).toLocaleDateString("pt-PT", {
+                          {new Date(turno.dataInicio).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon",
                             day: "2-digit",
                             month: "2-digit",
                           })}{" "}
-                          {new Date(turno.dataInicio).toLocaleTimeString("pt-PT", {
+                          {new Date(turno.dataInicio).toLocaleTimeString("pt-PT", { timeZone: "Europe/Lisbon",
                             hour: "2-digit",
                             minute: "2-digit",
                           })}{" "}
                           -{" "}
-                          {new Date(turno.dataFim).toLocaleDateString("pt-PT", {
+                          {new Date(turno.dataFim).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon",
                             day: "2-digit",
                             month: "2-digit",
                           })}{" "}
-                          {new Date(turno.dataFim).toLocaleTimeString("pt-PT", {
+                          {new Date(turno.dataFim).toLocaleTimeString("pt-PT", { timeZone: "Europe/Lisbon",
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
@@ -410,7 +408,7 @@ export default function Home() {
                       </div>
                       <p className="text-sm text-gray-600 mt-1 ml-4">
                         Termina a{" "}
-                        {new Date(evento.dataFim).toLocaleDateString("pt-PT", {
+                        {new Date(evento.dataFim).toLocaleDateString("pt-PT", { timeZone: "Europe/Lisbon",
                           day: "numeric",
                           month: "long",
                         })}

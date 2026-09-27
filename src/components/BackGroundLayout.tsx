@@ -6,6 +6,7 @@ const BackgroundLayout = ({ children }: BackgroundLayoutProps) => {
   return (
     <div
       className="
+        app-background
         min-w-screen
         bg-[url('/TLApp.jpeg')]
         bg-cover

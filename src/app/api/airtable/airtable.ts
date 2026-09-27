@@ -50,29 +50,61 @@ export interface TurnoAirtable {
 
 // --- HELPERS ---
 
+const APP_TIME_ZONE = 'Europe/Lisbon';
+
 const extractDateFromISO = (isoString: string): string => {
   if (!isoString) return '';
-  const dateObj = new Date(isoString);
-  const day = dateObj.getDate().toString().padStart(2, '0');
-  const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-  const year = dateObj.getFullYear();
-  return `${day}/${month}/${year}`;
+  return new Date(isoString).toLocaleDateString('pt-PT', {
+    timeZone: APP_TIME_ZONE, day: '2-digit', month: '2-digit', year: 'numeric',
+  });
 };
 
 const extractTimeFromISO = (isoString: string): string => {
   if (!isoString) return '';
-  const dateObj = new Date(isoString);
-  const hours = dateObj.getHours().toString().padStart(2, '0');
-  const minutes = dateObj.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
+  return new Date(isoString).toLocaleTimeString('pt-PT', {
+    timeZone: APP_TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  });
 };
 
 const combineDateAndTimeToISO = (dateApp: string, timeApp: string): string => {
   if (!dateApp || !timeApp) return '';
   const [day, month, year] = dateApp.split('/').map(Number);
   const [hours, minutes] = timeApp.split(':').map(Number);
-  const dateObj = new Date(year, month - 1, day, hours, minutes);
-  return dateObj.toISOString();
+  const base = new Date(Date.UTC(year, month - 1, day));
+  if (
+    !Number.isInteger(year) || base.getUTCFullYear() !== year ||
+    base.getUTCMonth() !== month - 1 || base.getUTCDate() !== day ||
+    !Number.isInteger(hours) || !Number.isInteger(minutes) ||
+    hours < 0 || hours > 24 || minutes < 0 || minutes > 59 ||
+    (hours === 24 && minutes !== 0)
+  ) throw new Error('Data ou hora inválida.');
+
+  // A UTC timestamp used only to represent the requested Lisbon wall-clock fields.
+  // 24:00 is normalized to midnight on the following day.
+  const wallTime = Date.UTC(year, month - 1, day, hours, minutes);
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: APP_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  });
+  const localFieldsAsUTC = (timestamp: number): number => {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(timestamp))
+      .filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
+    return Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  };
+
+  // Derive both possible offsets around a clock change from the time-zone database.
+  const offsets = new Set([-36, 0, 36].map(hoursAround => {
+    const sample = wallTime + hoursAround * 3600000;
+    return localFieldsAsUTC(sample) - sample;
+  }));
+  const matches = [...offsets].map(offset => wallTime - offset)
+    .filter(candidate => localFieldsAsUTC(candidate) === wallTime)
+    .sort((a, b) => a - b);
+  if (!matches.length) {
+    throw new Error('Esta hora não existe em Lisboa devido à mudança para o horário de verão.');
+  }
+  // In the repeated autumn hour, consistently choose its first occurrence.
+  return new Date(matches[0]).toISOString();
 };
 
 // --- CONTROLO DE PRESENÇAS (EX-ControloPresencasService) ---

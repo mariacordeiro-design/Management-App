@@ -36,6 +36,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false); // Loading complete
   }, []);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    if (String(user?.istId) === "110144") {
+      root.dataset.profileTheme = "purple-black";
+    } else {
+      delete root.dataset.profileTheme;
+    }
+    return () => { delete root.dataset.profileTheme; };
+  }, [user?.istId]);
+
   // When value changes, save to (or remove from) localStorage
   const setUser = (newUser: User | null) => {
     setUserState(newUser);
