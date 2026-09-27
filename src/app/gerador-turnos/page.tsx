@@ -409,223 +409,327 @@ export default function GeradorTurnos() {
               <h2 className="text-lg font-semibold text-gray-900">Parâmetros</h2>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <label htmlFor="parameter-peoplePerShift" className="block">
-                <span className="text-sm font-medium text-gray-700">Pessoas/turno<ParameterInfo label="Pessoas/turno" description="Total de pessoas em cada turno, incluindo um responsável e os restantes ajudantes." /></span>
-                <input id="parameter-peoplePerShift"
-                  type="number"
-                  min={1}
-                  value={peoplePerShift}
-                  onChange={event => setPeoplePerShift(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </label>
-
-              <label htmlFor="parameter-shiftDurationHours" className="block">
-                <span className="text-sm font-medium text-gray-700">Duração<ParameterInfo label="Duração" description="Duração de cada turno em horas. Por exemplo, 1,5 corresponde a 1 hora e 30 minutos." /></span>
-                <input id="parameter-shiftDurationHours"
-                  type="number"
-                  min={0.5}
-                  step={0.5}
-                  value={shiftDurationHours}
-                  onChange={event => setShiftDurationHours(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </label>
-
-              <label htmlFor="parameter-shiftsPerDay" className="block">
-                <span className="text-sm font-medium text-gray-700">Turnos/dia<ParameterInfo label="Turnos/dia" description="Número de turnos pretendido por dia. Podem ser gerados menos se faltarem pessoas disponíveis dentro dos limites." /></span>
-                <input id="parameter-shiftsPerDay"
-                  type="number"
-                  min={1}
-                  value={shiftsPerDay}
-                  onChange={event => setShiftsPerDay(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </label>
-
-              <label htmlFor="parameter-maxShiftsPerPersonDay" className="block">
-                <span className="text-sm font-medium text-gray-700">Máx./pessoa/dia<ParameterInfo label="Máx./pessoa/dia" description="Máximo de turnos por dia para cada ajudante. As pessoas da lista de responsáveis usam o limite de responsáveis." /></span>
-                <input id="parameter-maxShiftsPerPersonDay"
-                  type="number"
-                  min={1}
-                  value={maxShiftsPerPersonDay}
-                  onChange={event => setMaxShiftsPerPersonDay(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </label>
-
-              <label htmlFor="parameter-globalStartHour" className="block">
-                <span className="text-sm font-medium text-gray-700">Início<ParameterInfo label="Início" description="Hora mais cedo a que um turno pode começar, no formato de 0 a 23 horas." /></span>
-                <input id="parameter-globalStartHour"
-                  type="number"
-                  min={0}
-                  max={23}
-                  value={globalStartHour}
-                  onChange={event => setGlobalStartHour(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </label>
-
-              <label htmlFor="parameter-globalEndHour" className="block">
-                <span className="text-sm font-medium text-gray-700">Fim<ParameterInfo label="Fim" description="Hora até à qual todos os turnos devem terminar. O valor 24 corresponde à meia-noite." /></span>
-                <input id="parameter-globalEndHour"
-                  type="number"
-                  min={1}
-                  max={24}
-                  value={globalEndHour}
-                  onChange={event => setGlobalEndHour(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </label>
-
-              <label htmlFor="parameter-targetHoursPerPersonWeek" className="block">
-                <span className="text-sm font-medium text-gray-700">Horas ajudantes/semana<ParameterInfo label="Horas ajudantes/semana" description="Alvo semanal de horas por ajudante. O máximo permitido é este valor mais a tolerância; pode receber menos horas." /></span>
-                <input id="parameter-targetHoursPerPersonWeek"
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={targetHoursPerPersonWeek}
-                  onChange={event => setTargetHoursPerPersonWeek(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </label>
-
-              <label htmlFor="parameter-weeklyToleranceHours" className="block">
-                <span className="text-sm font-medium text-gray-700">Tolerância<ParameterInfo label="Tolerância" description="Horas adicionais permitidas acima do alvo semanal, tanto para ajudantes como para responsáveis. Usa 0 para não ultrapassar o alvo." /></span>
-                <input id="parameter-weeklyToleranceHours"
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={weeklyToleranceHours}
-                  onChange={event => setWeeklyToleranceHours(Number(event.target.value))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </label>
-            </div>
-
-            <p className="mt-3 text-xs text-gray-600">
-              O máximo semanal de cada pessoa é o alvo do seu grupo + tolerância.
-              Se não houver disponibilidade suficiente dentro desses limites, serão gerados menos turnos.
-            </p>
-
-            <div className="mt-3 rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-900">
-              Sugestão automática pela carga total: {suggestedHoursPerPersonWeek}h por pessoa.
-            </div>
-
-            <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <label htmlFor="parameter-responsibleTargetHoursPerWeek" className="block">
+            <div className="space-y-5">
+              <fieldset className="min-w-0 rounded-lg border border-gray-200 p-4">
+                <legend className="px-2 text-sm font-semibold text-gray-900">Pessoas</legend>
+                <label htmlFor="parameter-selectedArea" className="block">
                   <span className="text-sm font-medium text-gray-700">
-                    Horas responsáveis/semana<ParameterInfo label="Horas responsáveis/semana" description="Alvo semanal por pessoa da lista de responsáveis, contando também os turnos em que participa como ajudante. O máximo é o alvo mais a tolerância." />
+                    Filtrar pessoas por área
+                    <ParameterInfo
+                      label="Filtrar pessoas por área"
+                      description="Restringe a proposta a pessoas do departamento escolhido. Todas as áreas inclui todos os departamentos."
+                    />
                   </span>
-                  <input id="parameter-responsibleTargetHoursPerWeek"
+                  <select
+                    id="parameter-selectedArea"
+                    value={selectedArea}
+                    onChange={event => setSelectedArea(event.target.value)}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                  >
+                    <option value="">Todas as áreas</option>
+                    {departments.map(department => (
+                      <option key={department} value={department}>
+                        {department}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </fieldset>
+              <fieldset className="min-w-0 rounded-lg border border-gray-200 p-4">
+                <legend className="px-2 text-sm font-semibold text-gray-900">
+                  Turnos e horários
+                </legend>
+                <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4">
+                  <label htmlFor="parameter-peoplePerShift" className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Pessoas/turno
+                      <ParameterInfo
+                        label="Pessoas/turno"
+                        description="Total de pessoas em cada turno, incluindo um responsável e os restantes ajudantes."
+                      />
+                    </span>
+                    <input
+                      id="parameter-peoplePerShift"
+                      type="number"
+                      min={1}
+                      value={peoplePerShift}
+                      onChange={event => setPeoplePerShift(Number(event.target.value))}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                  <label htmlFor="parameter-shiftDurationHours" className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Duração
+                      <ParameterInfo
+                        label="Duração"
+                        description="Duração de cada turno em horas. Por exemplo, 1,5 corresponde a 1 hora e 30 minutos."
+                      />
+                    </span>
+                    <input
+                      id="parameter-shiftDurationHours"
+                      type="number"
+                      min={0.5}
+                      step={0.5}
+                      value={shiftDurationHours}
+                      onChange={event => setShiftDurationHours(Number(event.target.value))}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                  <label htmlFor="parameter-shiftsPerDay" className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Turnos/dia
+                      <ParameterInfo
+                        label="Turnos/dia"
+                        description="Número de turnos pretendido por dia. Podem ser gerados menos se faltarem pessoas disponíveis dentro dos limites."
+                      />
+                    </span>
+                    <input
+                      id="parameter-shiftsPerDay"
+                      type="number"
+                      min={1}
+                      value={shiftsPerDay}
+                      onChange={event => setShiftsPerDay(Number(event.target.value))}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <label htmlFor="parameter-globalStartHour" className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Início
+                      <ParameterInfo
+                        label="Início"
+                        description="Hora mais cedo a que um turno pode começar, no formato de 0 a 23 horas."
+                      />
+                    </span>
+                    <input
+                      id="parameter-globalStartHour"
+                      type="number"
+                      min={0}
+                      max={23}
+                      value={globalStartHour}
+                      onChange={event => setGlobalStartHour(Number(event.target.value))}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                  <label htmlFor="parameter-globalEndHour" className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Fim
+                      <ParameterInfo
+                        label="Fim"
+                        description="Hora até à qual todos os turnos devem terminar. O valor 24 corresponde à meia-noite."
+                      />
+                    </span>
+                    <input
+                      id="parameter-globalEndHour"
+                      type="number"
+                      min={1}
+                      max={24}
+                      value={globalEndHour}
+                      onChange={event => setGlobalEndHour(Number(event.target.value))}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-gray-700 mb-2">
+                    Dias
+                    <ParameterInfo
+                      label="Dias"
+                      description="Dias da semana em que serão procurados turnos. A semana concreta é escolhida depois, ao guardar a proposta."
+                    />
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {WEEK_ORDER.map(day => (
+                      <label
+                        key={day}
+                        className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedDays.includes(day)}
+                          onChange={event => {
+                            setSelectedDays(current =>
+                              event.target.checked
+                                ? [...current, day].sort(
+                                    (a, b) => WEEK_ORDER.indexOf(a) - WEEK_ORDER.indexOf(b)
+                                  )
+                                : current.filter(selectedDay => selectedDay !== day)
+                            );
+                          }}
+                        />
+                        {DAYS[day]}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <label
+                  htmlFor="parameter-overlap"
+                  className="mt-4 flex items-center gap-2 text-sm text-gray-700"
+                >
+                  <input
+                    type="checkbox"
+                    id="parameter-overlap"
+                    checked={allowOverlappingShifts}
+                    onChange={event => setAllowOverlappingShifts(event.target.checked)}
+                  />
+                  Permitir turnos sobrepostos
+                  <ParameterInfo
+                    label="Permitir turnos sobrepostos"
+                    description="Permite gerar turnos cujos horários coincidem total ou parcialmente."
+                  />
+                </label>
+              </fieldset>
+              <fieldset className="min-w-0 rounded-lg border border-gray-200 p-4">
+                <legend className="px-2 text-sm font-semibold text-gray-900">Ajudantes</legend>
+                <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4">
+                  <label htmlFor="parameter-targetHoursPerPersonWeek" className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Horas ajudantes/semana
+                      <ParameterInfo
+                        label="Horas ajudantes/semana"
+                        description="Alvo semanal de horas por ajudante. O máximo permitido é este valor mais a tolerância; pode receber menos horas."
+                      />
+                    </span>
+                    <input
+                      id="parameter-targetHoursPerPersonWeek"
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={targetHoursPerPersonWeek}
+                      onChange={event => setTargetHoursPerPersonWeek(Number(event.target.value))}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                  <label htmlFor="parameter-maxShiftsPerPersonDay" className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Máx./pessoa/dia
+                      <ParameterInfo
+                        label="Máx./pessoa/dia"
+                        description="Máximo de turnos por dia para cada ajudante. As pessoas da lista de responsáveis usam o limite de responsáveis."
+                      />
+                    </span>
+                    <input
+                      id="parameter-maxShiftsPerPersonDay"
+                      type="number"
+                      min={1}
+                      value={maxShiftsPerPersonDay}
+                      onChange={event => setMaxShiftsPerPersonDay(Number(event.target.value))}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                </div>
+              </fieldset>
+              <fieldset className="min-w-0 rounded-lg border border-gray-200 p-4">
+                <legend className="px-2 text-sm font-semibold text-gray-900">Responsáveis</legend>
+                <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-4">
+                  <label htmlFor="parameter-responsibleTargetHoursPerWeek" className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Horas responsáveis/semana
+                      <ParameterInfo
+                        label="Horas responsáveis/semana"
+                        description="Alvo semanal por pessoa da lista de responsáveis, contando também os turnos em que participa como ajudante. O máximo é o alvo mais a tolerância."
+                      />
+                    </span>
+                    <input
+                      id="parameter-responsibleTargetHoursPerWeek"
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={responsibleTargetHoursPerWeek}
+                      onChange={event =>
+                        setResponsibleTargetHoursPerWeek(Number(event.target.value))
+                      }
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                  <label htmlFor="parameter-maxResponsibleShiftsPerDay" className="block">
+                    <span className="text-sm font-medium text-gray-700">
+                      Máx. responsável/dia
+                      <ParameterInfo
+                        label="Máx. responsável/dia"
+                        description="Máximo de turnos por dia para cada pessoa da lista de responsáveis, mesmo quando participa como ajudante."
+                      />
+                    </span>
+                    <input
+                      id="parameter-maxResponsibleShiftsPerDay"
+                      type="number"
+                      min={1}
+                      value={maxResponsibleShiftsPerDay}
+                      onChange={event => setMaxResponsibleShiftsPerDay(Number(event.target.value))}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                </div>
+                <div className="mt-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Possíveis responsáveis
+                      <ParameterInfo
+                        label="Possíveis responsáveis"
+                        description="Pessoas que podem assumir a responsabilidade de um turno. Cada turno precisa de exatamente uma delas disponível."
+                      />
+                    </p>
+                    <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-gray-300 p-2">
+                      {eligiblePeople.map(person => (
+                        <label
+                          key={person.id}
+                          className="flex items-center gap-2 rounded px-2 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedResponsibleIds.includes(person.id)}
+                            onChange={event =>
+                              setSelectedResponsibleIds(current =>
+                                event.target.checked
+                                  ? [...current, person.id]
+                                  : current.filter(id => id !== person.id)
+                              )
+                            }
+                          />
+                          <span>{person.name}</span>
+                          <span className="ml-auto text-xs text-gray-400">{person.area}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Cada turno terá exatamente um responsável desta lista.
+                    </p>
+                  </div>
+                </div>
+              </fieldset>
+              <fieldset className="min-w-0 rounded-lg border border-gray-200 p-4">
+                <legend className="px-2 text-sm font-semibold text-gray-900">Limites comuns</legend>
+                <label htmlFor="parameter-weeklyToleranceHours" className="block">
+                  <span className="text-sm font-medium text-gray-700">
+                    Tolerância
+                    <ParameterInfo
+                      label="Tolerância"
+                      description="Horas adicionais permitidas acima do alvo semanal, tanto para ajudantes como para responsáveis. Usa 0 para não ultrapassar o alvo."
+                    />
+                  </span>
+                  <input
+                    id="parameter-weeklyToleranceHours"
                     type="number"
                     min={0}
                     step={0.5}
-                    value={responsibleTargetHoursPerWeek}
-                    onChange={event => setResponsibleTargetHoursPerWeek(Number(event.target.value))}
+                    value={weeklyToleranceHours}
+                    onChange={event => setWeeklyToleranceHours(Number(event.target.value))}
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                   />
                 </label>
-                <label htmlFor="parameter-maxResponsibleShiftsPerDay" className="block">
-                  <span className="text-sm font-medium text-gray-700">Máx. responsável/dia<ParameterInfo label="Máx. responsável/dia" description="Máximo de turnos por dia para cada pessoa da lista de responsáveis, mesmo quando participa como ajudante." /></span>
-                  <input id="parameter-maxResponsibleShiftsPerDay"
-                    type="number"
-                    min={1}
-                    value={maxResponsibleShiftsPerDay}
-                    onChange={event => setMaxResponsibleShiftsPerDay(Number(event.target.value))}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                  />
-                </label>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700">Possíveis responsáveis<ParameterInfo label="Possíveis responsáveis" description="Pessoas que podem assumir a responsabilidade de um turno. Cada turno precisa de exatamente uma delas disponível." /></p>
-                <div className="mt-2 max-h-48 space-y-1 overflow-y-auto rounded-md border border-gray-300 p-2">
-                  {eligiblePeople.map(person => (
-                    <label
-                      key={person.id}
-                      className="flex items-center gap-2 rounded px-2 py-1 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedResponsibleIds.includes(person.id)}
-                        onChange={event =>
-                          setSelectedResponsibleIds(current =>
-                            event.target.checked
-                              ? [...current, person.id]
-                              : current.filter(id => id !== person.id)
-                          )
-                        }
-                      />
-                      <span>{person.name}</span>
-                      <span className="ml-auto text-xs text-gray-400">{person.area}</span>
-                    </label>
-                  ))}
-                </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Cada turno terá exatamente um responsável desta lista.
+                <p className="mt-3 text-xs text-gray-600">
+                  O máximo semanal de cada pessoa é o alvo do seu grupo + tolerância. Se não houver
+                  disponibilidade suficiente dentro desses limites, serão gerados menos turnos.
                 </p>
-              </div>
-
-              <label htmlFor="parameter-selectedArea" className="block">
-                <span className="text-sm font-medium text-gray-700">Filtrar pessoas por área<ParameterInfo label="Filtrar pessoas por área" description="Restringe a proposta a pessoas do departamento escolhido. Todas as áreas inclui todos os departamentos." /></span>
-                <select id="parameter-selectedArea"
-                  value={selectedArea}
-                  onChange={event => setSelectedArea(event.target.value)}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                >
-                  <option value="">Todas as áreas</option>
-                  {departments.map(department => (
-                    <option key={department} value={department}>
-                      {department}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              </fieldset>
             </div>
-
-            <div className="mt-5">
-              <p className="text-sm font-medium text-gray-700 mb-2">Dias<ParameterInfo label="Dias" description="Dias da semana em que serão procurados turnos. A semana concreta é escolhida depois, ao guardar a proposta." /></p>
-              <div className="grid grid-cols-2 gap-2">
-                {WEEK_ORDER.map(day => (
-                  <label
-                    key={day}
-                    className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedDays.includes(day)}
-                      onChange={event => {
-                        setSelectedDays(current =>
-                          event.target.checked
-                            ? [...current, day].sort(
-                                (a, b) => WEEK_ORDER.indexOf(a) - WEEK_ORDER.indexOf(b)
-                              )
-                            : current.filter(selectedDay => selectedDay !== day)
-                        );
-                      }}
-                    />
-                    {DAYS[day]}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <label htmlFor="parameter-overlap" className="mt-4 flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                id="parameter-overlap"
-                checked={allowOverlappingShifts}
-                onChange={event => setAllowOverlappingShifts(event.target.checked)}
-              />
-              Permitir turnos sobrepostos<ParameterInfo label="Permitir turnos sobrepostos" description="Permite gerar turnos cujos horários coincidem total ou parcialmente." />
-            </label>
 
             <button
               onClick={generateSchedule}
               disabled={
-                isGenerating || isSaving ||
+                isGenerating ||
+                isSaving ||
                 selectedDays.length === 0 ||
                 eligiblePeople.length === 0 ||
                 selectedResponsibleIds.length === 0
@@ -691,16 +795,47 @@ export default function GeradorTurnos() {
                 <div className="divide-y divide-gray-200">
                   {result.shifts.length > 0 && (
                     <div className="space-y-3 p-4 text-sm text-gray-700">
-                      <p>Seleciona a data a partir da qual queres marcar os turnos. Cada turno fica na próxima ocorrência do seu dia da semana; se o horário de hoje já passou, fica para a semana seguinte.</p>
+                      <p>
+                        Seleciona a data a partir da qual queres marcar os turnos. Cada turno fica
+                        na próxima ocorrência do seu dia da semana; se o horário de hoje já passou,
+                        fica para a semana seguinte.
+                      </p>
                       <div className="flex flex-wrap gap-3">
-                        <label>Marcar turnos a partir de
-                          <input type="date" value={weekDate} disabled={isSaving} onChange={event => { setWeekDate(event.target.value); setSelectedShiftIds([]); setSaveMessage(""); }} className="mt-1 block rounded border p-2" />
+                        <label>
+                          Marcar turnos a partir de
+                          <input
+                            type="date"
+                            value={weekDate}
+                            disabled={isSaving}
+                            onChange={event => {
+                              setWeekDate(event.target.value);
+                              setSelectedShiftIds([]);
+                              setSaveMessage("");
+                            }}
+                            className="mt-1 block rounded border p-2"
+                          />
                         </label>
                       </div>
-                      <button type="button" disabled={isSaving || isGenerating || !weekDate || !selectedShiftIds.length} onClick={saveSelectedShifts} className="rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50">
-                        {isSaving ? "A guardar…" : "Adicionar selecionados ao calendário (" + selectedShiftIds.length + ")"}
+                      <button
+                        type="button"
+                        disabled={isSaving || isGenerating || !weekDate || !selectedShiftIds.length}
+                        onClick={saveSelectedShifts}
+                        className="rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+                      >
+                        {isSaving
+                          ? "A guardar…"
+                          : "Adicionar selecionados ao calendário (" +
+                            selectedShiftIds.length +
+                            ")"}
                       </button>
-                      {saveMessage && <p role="status">{saveMessage} <Link href="/calendario" className="text-blue-700 underline">Ver calendário</Link></p>}
+                      {saveMessage && (
+                        <p role="status">
+                          {saveMessage}{" "}
+                          <Link href="/calendario" className="text-blue-700 underline">
+                            Ver calendário
+                          </Link>
+                        </p>
+                      )}
                     </div>
                   )}
                   {result.warnings.length > 0 && (
@@ -716,13 +851,28 @@ export default function GeradorTurnos() {
                       <h3 className="mb-3 font-semibold text-gray-900">{DAYS[day]}</h3>
                       <div className="space-y-3">
                         {(generatedByDay.get(day) || []).map(shift => (
-                          <div
-                            key={shift.id}
-                            className="rounded-md border border-gray-200 p-3"
-                          >
+                          <div key={shift.id} className="rounded-md border border-gray-200 p-3">
                             <label className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-700">
-                              <input type="checkbox" checked={selectedShiftIds.includes(shift.id)} disabled={isSaving || isGenerating || !weekDate || savedKeys.includes(shiftKey(shift))} onChange={event => setSelectedShiftIds(current => event.target.checked ? [...current, shift.id] : current.filter(id => id !== shift.id))} />
-                              {savedKeys.includes(shiftKey(shift)) ? "Adicionado ao calendário" : "Selecionar turno"}
+                              <input
+                                type="checkbox"
+                                checked={selectedShiftIds.includes(shift.id)}
+                                disabled={
+                                  isSaving ||
+                                  isGenerating ||
+                                  !weekDate ||
+                                  savedKeys.includes(shiftKey(shift))
+                                }
+                                onChange={event =>
+                                  setSelectedShiftIds(current =>
+                                    event.target.checked
+                                      ? [...current, shift.id]
+                                      : current.filter(id => id !== shift.id)
+                                  )
+                                }
+                              />
+                              {savedKeys.includes(shiftKey(shift))
+                                ? "Adicionado ao calendário"
+                                : "Selecionar turno"}
                               {weekDate && <span>· {shiftDate(shift)}</span>}
                             </label>
                             {selectedShiftIds.includes(shift.id) && (
@@ -731,10 +881,12 @@ export default function GeradorTurnos() {
                                 <input
                                   type="text"
                                   value={shiftNames[shift.id] ?? suggestedShiftName(shift)}
-                                  onChange={event => setShiftNames(current => ({
-                                    ...current,
-                                    [shift.id]: event.target.value,
-                                  }))}
+                                  onChange={event =>
+                                    setShiftNames(current => ({
+                                      ...current,
+                                      [shift.id]: event.target.value,
+                                    }))
+                                  }
                                   disabled={isSaving}
                                   placeholder={suggestedShiftName(shift)}
                                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 disabled:bg-gray-100"
@@ -773,7 +925,16 @@ export default function GeradorTurnos() {
                                 ))}
                             </div>
 
-                            <button type="button" aria-expanded={expandedShiftId === shift.id} onClick={() => setExpandedShiftId(current => current === shift.id ? null : shift.id)} className="mt-3 text-sm text-blue-700 underline">
+                            <button
+                              type="button"
+                              aria-expanded={expandedShiftId === shift.id}
+                              onClick={() =>
+                                setExpandedShiftId(current =>
+                                  current === shift.id ? null : shift.id
+                                )
+                              }
+                              className="mt-3 text-sm text-blue-700 underline"
+                            >
                               {expandedShiftId === shift.id ? "Ocultar detalhes" : "Ver detalhes"}
                             </button>
                             {expandedShiftId === shift.id && (
