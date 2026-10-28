@@ -19,7 +19,7 @@ const Navbar = () => {
     { name: "Gestão", href: "/gestao" },
     { name: "Pessoal", href: "/pessoal" },
     { name: "Disponibilidades", href: "/disponibilidades" },
-    { name: "Gerador", href: "/gerador-turnos" },
+    //{ name: "Gerador", href: "/gerador-turnos" },
   ];
 
   // Filter navigation based on user role

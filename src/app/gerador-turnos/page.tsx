@@ -7,7 +7,44 @@ import { CalendarDays, Copy, Info, RefreshCw, SlidersHorizontal, Users } from "l
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
+import type { InputHTMLAttributes } from "react";
 
+
+type NumericParameterProps = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> & {
+  value: number;
+  onValueChange: (value: number) => void;
+};
+
+function NumericParameter({ value, onValueChange, ...props }: NumericParameterProps) {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => { setDraft(String(value)); }, [value]);
+
+  return (
+    <input
+      {...props}
+      type="number"
+      inputMode={props.step === undefined || Number(props.step) === 1 ? "numeric" : "decimal"}
+      value={draft}
+      onChange={event => setDraft(event.target.value)}
+      onBlur={event => {
+        const next = event.currentTarget.valueAsNumber;
+        if (Number.isFinite(next) && event.currentTarget.validity.valid) {
+          onValueChange(next);
+          setDraft(String(next));
+        } else {
+          setDraft(String(value));
+        }
+      }}
+      onKeyDown={event => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
 
 function ParameterInfo({ label, description }: { label: string; description: string }) {
   const [open, setOpen] = useState(false);
@@ -235,8 +272,10 @@ export default function GeradorTurnos() {
     shiftsPerDay,
   ]);
 
+  const invalidTimeRange = globalEndHour <= globalStartHour;
+
   const generateSchedule = async () => {
-    if (savingRef.current) return;
+    if (savingRef.current || invalidTimeRange) return;
     setSelectedShiftIds([]);
     setShiftNames({});
     setSaveMessage("");
@@ -397,9 +436,6 @@ export default function GeradorTurnos() {
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-blue-500">Gerador de Turnos</h1>
-          <p className="mt-2 text-sm text-gray-200">
-            Gera uma proposta automática com base nas disponibilidades do CrabFit.
-          </p>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6">
@@ -448,12 +484,12 @@ export default function GeradorTurnos() {
                         description="Total de pessoas em cada turno, incluindo um responsável e os restantes ajudantes."
                       />
                     </span>
-                    <input
+                    <NumericParameter
                       id="parameter-peoplePerShift"
                       type="number"
                       min={1}
                       value={peoplePerShift}
-                      onChange={event => setPeoplePerShift(Number(event.target.value))}
+                      onValueChange={setPeoplePerShift}
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                     />
                   </label>
@@ -465,13 +501,13 @@ export default function GeradorTurnos() {
                         description="Duração de cada turno em horas. Por exemplo, 1,5 corresponde a 1 hora e 30 minutos."
                       />
                     </span>
-                    <input
+                    <NumericParameter
                       id="parameter-shiftDurationHours"
                       type="number"
                       min={0.5}
                       step={0.5}
                       value={shiftDurationHours}
-                      onChange={event => setShiftDurationHours(Number(event.target.value))}
+                      onValueChange={setShiftDurationHours}
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                     />
                   </label>
@@ -483,12 +519,12 @@ export default function GeradorTurnos() {
                         description="Número de turnos pretendido por dia. Podem ser gerados menos se faltarem pessoas disponíveis dentro dos limites."
                       />
                     </span>
-                    <input
+                    <NumericParameter
                       id="parameter-shiftsPerDay"
                       type="number"
                       min={1}
                       value={shiftsPerDay}
-                      onChange={event => setShiftsPerDay(Number(event.target.value))}
+                      onValueChange={setShiftsPerDay}
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                     />
                   </label>
@@ -502,13 +538,13 @@ export default function GeradorTurnos() {
                         description="Hora mais cedo a que um turno pode começar, no formato de 0 a 23 horas."
                       />
                     </span>
-                    <input
+                    <NumericParameter
                       id="parameter-globalStartHour"
                       type="number"
                       min={0}
                       max={23}
                       value={globalStartHour}
-                      onChange={event => setGlobalStartHour(Number(event.target.value))}
+                      onValueChange={setGlobalStartHour}
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                     />
                   </label>
@@ -520,17 +556,24 @@ export default function GeradorTurnos() {
                         description="Hora até à qual todos os turnos devem terminar. O valor 24 corresponde à meia-noite."
                       />
                     </span>
-                    <input
+                    <NumericParameter
                       id="parameter-globalEndHour"
+                      aria-invalid={invalidTimeRange}
+                      aria-describedby={invalidTimeRange ? "time-range-error" : undefined}
                       type="number"
                       min={1}
                       max={24}
                       value={globalEndHour}
-                      onChange={event => setGlobalEndHour(Number(event.target.value))}
+                      onValueChange={setGlobalEndHour}
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                     />
                   </label>
                 </div>
+                {invalidTimeRange && (
+                  <p id="time-range-error" role="alert" className="mt-2 text-sm text-red-700">
+                    A hora de fim tem de ser posterior à hora de início.
+                  </p>
+                )}
                 <div className="mt-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">
                     Dias
@@ -591,13 +634,13 @@ export default function GeradorTurnos() {
                         description="Alvo semanal de horas por ajudante. O máximo permitido é este valor mais a tolerância; pode receber menos horas."
                       />
                     </span>
-                    <input
+                    <NumericParameter
                       id="parameter-targetHoursPerPersonWeek"
                       type="number"
                       min={0}
                       step={0.5}
                       value={targetHoursPerPersonWeek}
-                      onChange={event => setTargetHoursPerPersonWeek(Number(event.target.value))}
+                      onValueChange={setTargetHoursPerPersonWeek}
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                     />
                   </label>
@@ -609,12 +652,12 @@ export default function GeradorTurnos() {
                         description="Máximo de turnos por dia para cada ajudante. As pessoas da lista de responsáveis usam o limite de responsáveis."
                       />
                     </span>
-                    <input
+                    <NumericParameter
                       id="parameter-maxShiftsPerPersonDay"
                       type="number"
                       min={1}
                       value={maxShiftsPerPersonDay}
-                      onChange={event => setMaxShiftsPerPersonDay(Number(event.target.value))}
+                      onValueChange={setMaxShiftsPerPersonDay}
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                     />
                   </label>
@@ -631,15 +674,13 @@ export default function GeradorTurnos() {
                         description="Alvo semanal por pessoa da lista de responsáveis, contando também os turnos em que participa como ajudante. O máximo é o alvo mais a tolerância."
                       />
                     </span>
-                    <input
+                    <NumericParameter
                       id="parameter-responsibleTargetHoursPerWeek"
                       type="number"
                       min={0}
                       step={0.5}
                       value={responsibleTargetHoursPerWeek}
-                      onChange={event =>
-                        setResponsibleTargetHoursPerWeek(Number(event.target.value))
-                      }
+                      onValueChange={setResponsibleTargetHoursPerWeek}
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                     />
                   </label>
@@ -651,12 +692,12 @@ export default function GeradorTurnos() {
                         description="Máximo de turnos por dia para cada pessoa da lista de responsáveis, mesmo quando participa como ajudante."
                       />
                     </span>
-                    <input
+                    <NumericParameter
                       id="parameter-maxResponsibleShiftsPerDay"
                       type="number"
                       min={1}
                       value={maxResponsibleShiftsPerDay}
-                      onChange={event => setMaxResponsibleShiftsPerDay(Number(event.target.value))}
+                      onValueChange={setMaxResponsibleShiftsPerDay}
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                     />
                   </label>
@@ -708,13 +749,13 @@ export default function GeradorTurnos() {
                       description="Horas adicionais permitidas acima do alvo semanal, tanto para ajudantes como para responsáveis. Usa 0 para não ultrapassar o alvo."
                     />
                   </span>
-                  <input
+                  <NumericParameter
                     id="parameter-weeklyToleranceHours"
                     type="number"
                     min={0}
                     step={0.5}
                     value={weeklyToleranceHours}
-                    onChange={event => setWeeklyToleranceHours(Number(event.target.value))}
+                    onValueChange={setWeeklyToleranceHours}
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                   />
                 </label>
@@ -728,6 +769,7 @@ export default function GeradorTurnos() {
             <button
               onClick={generateSchedule}
               disabled={
+                invalidTimeRange ||
                 isGenerating ||
                 isSaving ||
                 selectedDays.length === 0 ||

@@ -113,5 +113,16 @@ class ShiftOptimizerTest(unittest.TestCase):
         self.assertTrue(result["warnings"])
 
 
+
+    def test_rejects_end_time_before_or_equal_to_start(self):
+        for end_hour in (7, 8):
+            with self.subTest(end_hour=end_hour):
+                payload = self.base_payload()
+                payload["globalStartHour"] = 8
+                payload["globalEndHour"] = end_hour
+                with self.assertRaisesRegex(ValueError, "A hora de fim"):
+                    optimize_schedule(payload)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -57,6 +57,8 @@ def empty_result(days, per_day, person_ids, status="INFEASIBLE"):
 
 
 def optimize_schedule(data):
+    if as_int(data.get("globalEndHour")) <= as_int(data.get("globalStartHour")):
+        raise ValueError("A hora de fim tem de ser posterior à hora de início.")
     people = [p for p in data.get("people", []) if p.get("id")]
     eligible, candidates = build_candidates(data, people)
     people_per_shift = as_int(data.get("peoplePerShift"))
